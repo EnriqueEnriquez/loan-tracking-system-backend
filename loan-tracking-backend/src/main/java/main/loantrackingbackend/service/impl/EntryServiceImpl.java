@@ -15,6 +15,7 @@ import main.loantrackingbackend.service.ImageProofService;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -44,5 +45,59 @@ public class EntryServiceImpl implements EntryService {
 
 
         return EntryMapper.mapToStraightExpenseDto(savedExpense);
+    }
+
+    @Override
+    public StraightResponseDto getStraightExpenseByID(UUID entryID) throws IOException {
+        StraightExpense straightExpense = (StraightExpense) entryRepository.findById(entryID)
+                .orElseThrow(() -> new ResourceNotFoundException("Straight Expense does not exist with id: " + entryID));
+
+        return EntryMapper.mapToStraightExpenseDto(straightExpense);
+    }
+
+    @Override
+    public StraightResponseDto updateStraightExpense(UUID entryID, StraightCreateDto seUpdatedDto) throws IOException {
+        StraightExpense se = (StraightExpense) entryRepository.findById(entryID)
+                .orElseThrow(() -> new ResourceNotFoundException("Straight Expense does not exist with id: " + entryID));
+
+        se.setEntryName(seUpdatedDto.getEntryName());
+        se.setDescription(seUpdatedDto.getDescription());
+        se.setDateBorrowed(seUpdatedDto.getDateBorrowed());
+        se.setDateFullyPaid(seUpdatedDto.getDateFullyPaid());
+        se.setBorrowerName(seUpdatedDto.getBorrowerName());
+        se.setLenderName(seUpdatedDto.getLenderName());
+        se.setAmountBorrowed(seUpdatedDto.getAmountBorrowed());
+        se.setAmountRemaining(seUpdatedDto.getAmountRemaining());
+        se.setStatus(seUpdatedDto.getStatus());
+        se.setNotes(seUpdatedDto.getNotes());
+
+        //TODO: Create logic for updating referenceID
+
+        if (seUpdatedDto.getImageFile() != null && !seUpdatedDto.getImageFile().isEmpty()) {
+
+            ImageProof oldImage = se.getImageProof();
+            if (oldImage != null) {
+                imageProofService.deleteImageFile(oldImage.getId());
+            }
+
+            ImageProof newImage = imageProofService.saveImageFile(seUpdatedDto.getImageFile());
+            se.setImageProof(newImage);
+        }
+
+        Person borrower = personRepository.findById(seUpdatedDto.getBorrowerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
+        se.setPersonBorrower(borrower);
+
+        StraightExpense savedExpense = entryRepository.save(se);
+
+        return EntryMapper.mapToStraightExpenseDto(savedExpense);
+    }
+
+    @Override
+    public void deleteStraightExpense(UUID entryID) throws IOException {
+        StraightExpense se = (StraightExpense) entryRepository.findById(entryID)
+                .orElseThrow(() -> new ResourceNotFoundException("Straight Expense does not exist with id: " + entryID));
+
+        entryRepository.delete(se);
     }
 }

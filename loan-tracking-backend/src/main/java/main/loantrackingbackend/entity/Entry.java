@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.enums.TransactionType;
+import org.hibernate.annotations.Cascade;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
@@ -63,7 +64,7 @@ public class Entry {
     //TODO: Create Logic for Reference ID
     //private String referenceId;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "image_proof_id")
     private ImageProof imageProof;
 

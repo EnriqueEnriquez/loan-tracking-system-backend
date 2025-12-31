@@ -2,6 +2,7 @@ package main.loantrackingbackend.service.impl;
 
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.entity.ImageProof;
+import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.repository.ImageProofRepository;
 import main.loantrackingbackend.service.ImageProofService;
 import org.springframework.stereotype.Service;
@@ -37,5 +38,14 @@ public class ImageProofServiceImpl implements ImageProofService {
         imageProof.setImageUrl(targetPath.toString());
 
         return imageProofRepository.save(imageProof);
+    }
+
+    @Override
+    public void deleteImageFile(Long imageId) throws IOException {
+        ImageProof imageProof = imageProofRepository.findById(imageId).orElseThrow(
+                () -> new ResourceNotFoundException("Image not found")
+        );
+        imageProofRepository.delete(imageProof);
+
     }
 }
