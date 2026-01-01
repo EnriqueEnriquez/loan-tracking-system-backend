@@ -1,12 +1,8 @@
 package main.loantrackingbackend.service.impl;
 
 import lombok.AllArgsConstructor;
-import main.loantrackingbackend.dto.StraightCreateDto;
-import main.loantrackingbackend.dto.StraightResponseDto;
-import main.loantrackingbackend.entity.Entry;
-import main.loantrackingbackend.entity.ImageProof;
-import main.loantrackingbackend.entity.Person;
-import main.loantrackingbackend.entity.StraightExpense;
+import main.loantrackingbackend.dto.*;
+import main.loantrackingbackend.entity.*;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.repository.EntryRepository;
@@ -27,6 +23,22 @@ public class EntryServiceImpl implements EntryService {
     private ImageProofService imageProofService;
 
     @Override
+    public EntryResponseDto getEntryById(UUID entryId) {
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        if (entry instanceof StraightExpense) {
+            return EntryMapper.mapToStraightResponseDto((StraightExpense) entry);
+        } else if (entry instanceof InstallmentExpense) {
+            return EntryMapper.mapToInstallmentResponseDto((InstallmentExpense) entry);
+        } else {
+            throw new ResourceNotFoundException("Entry not found");
+        }
+
+        //TODO: add if statement of instance of Group Expense
+    }
+
+    @Override
     public StraightResponseDto createStraightExpense(StraightCreateDto seCreateDto) throws IOException {
 
         StraightExpense straightExpense = EntryMapper.mapToStraightExpense(seCreateDto);
@@ -40,20 +52,13 @@ public class EntryServiceImpl implements EntryService {
         if (seCreateDto.getImageFile() != null && !seCreateDto.getImageFile().isEmpty()) {
             ImageProof imageProof = imageProofService.saveImageFile(savedExpense, seCreateDto.getImageFile());
             savedExpense.setImageProof(imageProof);
+            savedExpense = entryRepository.save(savedExpense);
         }
 
         //TODO: Create logic for referenceID
         //straightExpense.setReferenceId(referenceId);
 
-        return EntryMapper.mapToStraightExpenseDto(savedExpense);
-    }
-
-    @Override
-    public StraightResponseDto getStraightExpenseByID(UUID entryID) throws IOException {
-        StraightExpense straightExpense = (StraightExpense) entryRepository.findById(entryID)
-                .orElseThrow(() -> new ResourceNotFoundException("Straight Expense does not exist with id: " + entryID));
-
-        return EntryMapper.mapToStraightExpenseDto(straightExpense);
+        return EntryMapper.mapToStraightResponseDto(savedExpense);
     }
 
     @Override
@@ -93,14 +98,34 @@ public class EntryServiceImpl implements EntryService {
 
         StraightExpense savedExpense = entryRepository.save(se);
 
-        return EntryMapper.mapToStraightExpenseDto(savedExpense);
+        return EntryMapper.mapToStraightResponseDto(savedExpense);
     }
 
     @Override
-    public void deleteStraightExpense(UUID entryID) throws IOException {
-        StraightExpense se = (StraightExpense) entryRepository.findById(entryID)
-                .orElseThrow(() -> new ResourceNotFoundException("Straight Expense does not exist with id: " + entryID));
+    public void deleteEntry(UUID entryID) throws IOException {
+        Entry entry = entryRepository.findById(entryID)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense does not exist with id: " + entryID));
 
-        entryRepository.delete(se);
+        entryRepository.delete(entry);
+    }
+
+    @Override
+    public InstallmentResponseDto createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException {
+        InstallmentExpense installmentExpense = EntryMapper.mapToInstallmentExpense(installmentCreateDto);
+
+        Person borrower = personRepository.findById(installmentCreateDto.getBorrowerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
+
+        installmentExpense.setPersonBorrower(borrower);
+        InstallmentExpense savedExpense = entryRepository.save(installmentExpense);
+
+        if (installmentCreateDto.getImageFile() != null && !installmentCreateDto.getImageFile().isEmpty()) {
+            ImageProof imageProof = imageProofService.saveImageFile(savedExpense, installmentCreateDto.getImageFile());
+            savedExpense.setImageProof(imageProof);
+
+            savedExpense = entryRepository.save(savedExpense);
+        }
+
+        return EntryMapper.mapToInstallmentResponseDto(savedExpense);
     }
 }

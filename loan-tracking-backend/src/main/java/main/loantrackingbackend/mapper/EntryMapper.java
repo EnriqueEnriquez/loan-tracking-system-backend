@@ -1,57 +1,88 @@
 package main.loantrackingbackend.mapper;
 
-import main.loantrackingbackend.dto.StraightCreateDto;
-import main.loantrackingbackend.dto.StraightResponseDto;
+import main.loantrackingbackend.dto.*;
+import main.loantrackingbackend.entity.Entry;
+import main.loantrackingbackend.entity.InstallmentExpense;
 import main.loantrackingbackend.entity.StraightExpense;
 
 public class EntryMapper {
 
-    public static StraightResponseDto mapToStraightExpenseDto(StraightExpense straightExpense) {
+    private static void mapToCommonDtoFields(Entry source, EntryResponseDto target) {
+        target.setId(source.getId());
+        target.setEntryName(source.getEntryName());
+        target.setDescription(source.getDescription());
+        target.setTransactionType(source.getTransactionType());
+        target.setDateBorrowed(source.getDateBorrowed());
+        target.setDateFullyPaid(source.getDateFullyPaid());
+        target.setBorrowerName(source.getBorrowerName());
+        target.setLenderName(source.getLenderName());
+        target.setAmountBorrowed(source.getAmountBorrowed());
+        target.setAmountRemaining(source.getAmountRemaining());
+        target.setStatus(source.getStatus());
+        target.setNotes(source.getNotes());
+
+        if (source.getImageProof() != null) {
+            target.setImageUrl(source.getImageProof().getImageUrl());
+        } else {
+            target.setImageUrl(null);
+        }
+    }
+
+    public static StraightResponseDto mapToStraightResponseDto(StraightExpense straightExpense) {
         StraightResponseDto dto = new StraightResponseDto();
 
-        dto.setId(straightExpense.getId());
-        dto.setEntryName(straightExpense.getEntryName());
-        dto.setDescription(straightExpense.getDescription());
-        dto.setTransactionType(straightExpense.getTransactionType());
-        dto.setDateBorrowed(straightExpense.getDateBorrowed());
-        dto.setDateFullyPaid(straightExpense.getDateFullyPaid());
-        dto.setBorrowerName(straightExpense.getBorrowerName());
-        dto.setLenderName(straightExpense.getLenderName());
-        dto.setAmountBorrowed(straightExpense.getAmountBorrowed());
-        dto.setAmountRemaining(straightExpense.getAmountRemaining());
-        dto.setStatus(straightExpense.getStatus());
-        dto.setNotes(straightExpense.getNotes());
+        mapToCommonDtoFields(straightExpense, dto);
         dto.setBorrowerId(straightExpense.getPersonBorrower().getPersonId());
-
-        if (straightExpense.getImageProof() != null) {
-            dto.setImageUrl(straightExpense.getImageProof().getImageUrl());
-        } else {
-            dto.setImageUrl(null);
-        }
 
         return dto;
     }
 
-    public static StraightExpense mapToStraightExpense(StraightCreateDto dto) {
-        StraightExpense se = new StraightExpense();
+    public static InstallmentResponseDto mapToInstallmentResponseDto (InstallmentExpense installmentExpense) {
+        InstallmentResponseDto dto = new InstallmentResponseDto();
 
-        se.setId(dto.getId());
-        se.setEntryName(dto.getEntryName());
-        se.setDescription(dto.getDescription());
-        se.setTransactionType(dto.getTransactionType());
-        se.setDateBorrowed(dto.getDateBorrowed());
-        se.setDateFullyPaid(dto.getDateFullyPaid());
-        se.setBorrowerName(dto.getBorrowerName());
-        se.setLenderName(dto.getLenderName());
-        se.setAmountBorrowed(dto.getAmountBorrowed());
-        se.setAmountRemaining(dto.getAmountRemaining());
-        se.setStatus(dto.getStatus());
-        se.setNotes(dto.getNotes());
+        mapToCommonDtoFields(installmentExpense, dto);
 
-        return se;
+        dto.setBorrowerId(installmentExpense.getPersonBorrower().getPersonId());
+        dto.setStartDate(installmentExpense.getStartDate());
+        dto.setPaymentFrequency(installmentExpense.getPaymentFrequency());
+        dto.setPaymentTerms(installmentExpense.getPaymentTerms());
+        dto.setPaymentAmountPerTerm(installmentExpense.getPaymentAmountPerTerm());
+
+        return dto;
     }
 
+    private static void mapCommonEntityFields(EntryCreateDto source, Entry target) {
+        target.setId(source.getId());
+        target.setEntryName(source.getEntryName());
+        target.setDescription(source.getDescription());
+        target.setTransactionType(source.getTransactionType());
+        target.setDateBorrowed(source.getDateBorrowed());
+        target.setDateFullyPaid(source.getDateFullyPaid());
+        target.setBorrowerName(source.getBorrowerName());
+        target.setLenderName(source.getLenderName());
+        target.setAmountBorrowed(source.getAmountBorrowed());
+        target.setAmountRemaining(source.getAmountRemaining());
+        target.setStatus(source.getStatus());
+        target.setNotes(source.getNotes());
+    }
 
+    public static StraightExpense mapToStraightExpense(StraightCreateDto dto) {
+        StraightExpense straightExpense = new StraightExpense();
+        mapCommonEntityFields(dto, straightExpense);
 
+        return straightExpense;
+    }
+
+    public static InstallmentExpense mapToInstallmentExpense(InstallmentCreateDto dto) {
+        InstallmentExpense installmentExpense = new InstallmentExpense();
+        mapCommonEntityFields(dto, installmentExpense);
+
+        installmentExpense.setStartDate(dto.getStartDate());
+        installmentExpense.setPaymentFrequency(dto.getPaymentFrequency());
+        installmentExpense.setPaymentTerms(dto.getPaymentTerms());
+        installmentExpense.setPaymentAmountPerTerm(dto.getPaymentAmountPerTerm());
+
+        return installmentExpense;
+    }
 
 }

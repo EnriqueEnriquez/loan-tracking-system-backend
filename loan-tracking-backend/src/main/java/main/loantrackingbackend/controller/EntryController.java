@@ -2,6 +2,7 @@ package main.loantrackingbackend.controller;
 
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.EntryResponseDto;
+import main.loantrackingbackend.dto.InstallmentCreateDto;
 import main.loantrackingbackend.dto.StraightCreateDto;
 import main.loantrackingbackend.dto.StraightResponseDto;
 import main.loantrackingbackend.entity.StraightExpense;
@@ -20,19 +21,18 @@ import java.util.UUID;
 public class EntryController {
     private EntryService entryService;
 
+    @GetMapping("{id}")
+    public ResponseEntity<EntryResponseDto> getEntryById(@PathVariable("id") UUID entryID) throws IOException {
+        EntryResponseDto entryResponseDto = entryService.getEntryById(entryID);
+
+        return new ResponseEntity<>(entryResponseDto, HttpStatus.OK);
+    }
 
     @PostMapping(path = "/straight",consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EntryResponseDto> createStraightExpense(StraightCreateDto seCreateDto) throws IOException {
         EntryResponseDto entryResponseDto = entryService.createStraightExpense(seCreateDto);
 
         return new ResponseEntity<>(entryResponseDto, HttpStatus.CREATED);
-    }
-
-    @GetMapping("/straight/{id}")
-    public ResponseEntity<StraightResponseDto> getStraightExpenseByID(@PathVariable("id") UUID entryID) throws IOException {
-        StraightResponseDto entryResponseDto = entryService.getStraightExpenseByID(entryID);
-
-        return new ResponseEntity<>(entryResponseDto, HttpStatus.OK);
     }
 
     @PutMapping(path = "/straight/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -42,10 +42,17 @@ public class EntryController {
         return new ResponseEntity<>(straightResponseDto, HttpStatus.OK);
     }
 
-    @DeleteMapping("/straight/{id}")
-    public ResponseEntity<String> deleteStraightExpense(@PathVariable("id") UUID entryId) throws IOException {
-        entryService.deleteStraightExpense(entryId);
-        return new ResponseEntity<>("Straight Expense Entry Deleted", HttpStatus.OK);
+    @PostMapping(path = "/installment",consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntryResponseDto> createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException {
+        EntryResponseDto entryResponseDto = entryService.createInstallmentExpense(installmentCreateDto);
+
+        return new ResponseEntity<>(entryResponseDto, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("{id}")
+    public ResponseEntity<String> deleteExpense(@PathVariable("id") UUID entryId) throws IOException {
+        entryService.deleteEntry(entryId);
+        return new ResponseEntity<>("Expense Entry Deleted", HttpStatus.OK);
     }
 
 }
