@@ -61,6 +61,8 @@ public class Entry {
     //TODO: Create Logic for Reference ID
     //private String referenceId;
 
+    // borrower + lender or group name + lender
+
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "entry")
     private ImageProof imageProof;
 

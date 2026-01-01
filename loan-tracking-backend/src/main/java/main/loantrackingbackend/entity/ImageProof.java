@@ -26,5 +26,4 @@ public class ImageProof {
     @OneToOne
     @JoinColumn(name = "entry_id")
     private Entry entry;
-
 }
