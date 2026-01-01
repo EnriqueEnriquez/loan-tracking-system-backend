@@ -3,6 +3,7 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.StraightCreateDto;
 import main.loantrackingbackend.dto.StraightResponseDto;
+import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.ImageProof;
 import main.loantrackingbackend.entity.Person;
 import main.loantrackingbackend.entity.StraightExpense;
@@ -33,16 +34,16 @@ public class EntryServiceImpl implements EntryService {
         Person borrower = personRepository.findById(seCreateDto.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
 
-        ImageProof imageProof = imageProofService.saveImageFile(seCreateDto.getImageFile());
+        straightExpense.setPersonBorrower(borrower);
+        StraightExpense savedExpense = entryRepository.save(straightExpense);
+
+        if (seCreateDto.getImageFile() != null && !seCreateDto.getImageFile().isEmpty()) {
+            ImageProof imageProof = imageProofService.saveImageFile(savedExpense, seCreateDto.getImageFile());
+            savedExpense.setImageProof(imageProof);
+        }
 
         //TODO: Create logic for referenceID
         //straightExpense.setReferenceId(referenceId);
-
-        straightExpense.setImageProof(imageProof);
-        straightExpense.setPersonBorrower(borrower);
-
-        StraightExpense savedExpense = entryRepository.save(straightExpense);
-
 
         return EntryMapper.mapToStraightExpenseDto(savedExpense);
     }
@@ -80,8 +81,10 @@ public class EntryServiceImpl implements EntryService {
                 imageProofService.deleteImageFile(oldImage.getId());
             }
 
-            ImageProof newImage = imageProofService.saveImageFile(seUpdatedDto.getImageFile());
+            ImageProof newImage = imageProofService.saveImageFile(se, seUpdatedDto.getImageFile());
             se.setImageProof(newImage);
+        } else {
+            se.setImageProof(null);
         }
 
         Person borrower = personRepository.findById(seUpdatedDto.getBorrowerId())

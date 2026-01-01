@@ -1,6 +1,7 @@
 package main.loantrackingbackend.service.impl;
 
 import lombok.AllArgsConstructor;
+import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.ImageProof;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.repository.ImageProofRepository;
@@ -22,7 +23,7 @@ public class ImageProofServiceImpl implements ImageProofService {
     private ImageProofRepository imageProofRepository;
 
     @Override
-    public ImageProof saveImageFile(MultipartFile imageFile) throws IOException {
+    public ImageProof saveImageFile(Entry entry, MultipartFile imageFile) throws IOException {
 
         String folderDir = "uploads/";
         Files.createDirectories(Paths.get(folderDir));
@@ -36,6 +37,7 @@ public class ImageProofServiceImpl implements ImageProofService {
         ImageProof imageProof = new ImageProof();
         imageProof.setImageName(fileName);
         imageProof.setImageUrl(targetPath.toString());
+        imageProof.setEntry(entry);
 
         return imageProofRepository.save(imageProof);
     }

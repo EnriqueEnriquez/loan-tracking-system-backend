@@ -22,7 +22,12 @@ public class EntryMapper {
         dto.setStatus(straightExpense.getStatus());
         dto.setNotes(straightExpense.getNotes());
         dto.setBorrowerId(straightExpense.getPersonBorrower().getPersonId());
-        dto.setImageUrl(straightExpense.getImageProof().getImageUrl());
+
+        if (straightExpense.getImageProof() != null) {
+            dto.setImageUrl(straightExpense.getImageProof().getImageUrl());
+        } else {
+            dto.setImageUrl(null);
+        }
 
         return dto;
     }
