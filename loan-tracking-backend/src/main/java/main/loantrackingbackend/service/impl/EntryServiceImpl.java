@@ -134,9 +134,46 @@ public class EntryServiceImpl implements EntryService {
             savedExpense = entryRepository.save(savedExpense);
         }
 
-        savedExpense.setReferenceId(EntryMapper.getReferenceId(savedExpense));
+        savedExpense.setReferenceId(getReferenceId(savedExpense));
 
         return EntryMapper.mapToStraightResponseDto(savedExpense);
+    }
+
+    public static String getReferenceId(Entry entry) {
+        String lender = entry.getPersonLender().getFirstName() + " " + entry.getPersonLender().getLastName();
+        String borrower = "";
+
+        switch (entry) {
+            case StraightExpense straightExpense -> borrower = straightExpense.getPersonBorrower().getFirstName()
+                    + " " + straightExpense.getPersonBorrower().getLastName();
+            case InstallmentExpense installment -> borrower = installment.getPersonBorrower().getFirstName()
+                    + " " + installment.getPersonBorrower().getLastName();
+            //TODO: case GroupExpense groupExpense -> borrower = groupExpense.getGroupBorrower().getGroupName();
+            default -> {
+            }
+        }
+        return getInitials(borrower) + "_" + getInitials(lender);
+    }
+
+    /**
+     * Helper method for initials, free to transfer to another class
+     *
+     * @param name derived from First Name & Last Name or Group Name
+     * @return initials
+     */
+    public static String getInitials(String name) {
+        if (name == null || name.isBlank()) return "";
+
+        String[] words = name.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                initials.append(Character.toUpperCase(word.charAt(0)));
+            }
+        }
+
+        return initials.toString();
     }
 
     //TODO: Delete this after checking if updateEntryDetails is working successfully
@@ -218,7 +255,7 @@ public class EntryServiceImpl implements EntryService {
             savedExpense = entryRepository.save(savedExpense);
         }
 
-        savedExpense.setReferenceId(EntryMapper.getReferenceId(savedExpense));
+        savedExpense.setReferenceId(getReferenceId(savedExpense));
 
         return EntryMapper.mapToInstallmentResponseDto(savedExpense);
     }

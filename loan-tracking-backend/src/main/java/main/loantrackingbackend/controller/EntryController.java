@@ -18,7 +18,7 @@ import java.util.UUID;
 public class EntryController {
     private EntryService entryService;
 
-    @GetMapping("{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<EntryResponseDto> getEntryById(@PathVariable("id") UUID entryID) throws IOException {
         EntryResponseDto entryResponseDto = entryService.getEntryById(entryID);
 
