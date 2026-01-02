@@ -38,4 +38,9 @@ public class Payment{
 
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentProof> imageFiles = new ArrayList<>();
+
+    // nullable = false
+    @ManyToOne
+    @JoinColumn(name = "entry_id")
+    private Entry entry;
 }

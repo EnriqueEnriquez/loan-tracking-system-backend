@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -20,4 +21,5 @@ public class PaymentResponseDto {
     private PersonDto payeeDto;
     private String notes;
     private List<String> imageUrls;
+    private UUID entryId;
 }

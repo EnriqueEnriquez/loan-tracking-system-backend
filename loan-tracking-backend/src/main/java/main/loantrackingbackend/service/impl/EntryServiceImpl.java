@@ -134,8 +134,7 @@ public class EntryServiceImpl implements EntryService {
             savedExpense = entryRepository.save(savedExpense);
         }
 
-        //TODO: Create logic for referenceID
-        //straightExpense.setReferenceId(referenceId);
+        savedExpense.setReferenceId(EntryMapper.getReferenceId(savedExpense));
 
         return EntryMapper.mapToStraightResponseDto(savedExpense);
     }
@@ -218,6 +217,8 @@ public class EntryServiceImpl implements EntryService {
 
             savedExpense = entryRepository.save(savedExpense);
         }
+
+        savedExpense.setReferenceId(EntryMapper.getReferenceId(savedExpense));
 
         return EntryMapper.mapToInstallmentResponseDto(savedExpense);
     }

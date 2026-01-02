@@ -3,11 +3,13 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentCreateDto;
 import main.loantrackingbackend.dto.PaymentResponseDto;
+import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.PaymentProof;
 import main.loantrackingbackend.entity.Payment;
 import main.loantrackingbackend.entity.Person;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PaymentMapper;
+import main.loantrackingbackend.repository.EntryRepository;
 import main.loantrackingbackend.repository.PaymentRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.PaymentProofService;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -25,16 +28,23 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final PersonRepository personRepository;
     private final PaymentProofService paymentProofService;
+    private final EntryRepository entryRepository;
 
     @Override
     public PaymentResponseDto createPayment(PaymentCreateDto dto) throws IOException {
 
-        Person payee = personRepository.findById(dto.getPayeeId())
+        Person payee = personRepository.findById(dto.getPersonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Payee not found"));
 
         Payment payment = PaymentMapper.mapToPayment(dto);
         payment.setPayee(payee);
+
         payment.setPaymentDate(LocalDate.now());
+
+        Entry entry = entryRepository.findById(dto.getEntryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        payment.setEntry(entry);
 
         payment = paymentRepository.save(payment);
 
@@ -72,6 +82,19 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    public List<PaymentResponseDto> getPaymentsByEntry(UUID entryId) {
+
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        List<Payment> payments = paymentRepository.findByEntry(entry);
+
+        return payments.stream()
+                .map(PaymentMapper::mapToPaymentResponseDto)
+                .toList();
+    }
+
+    @Override
     public List<PaymentResponseDto> getAllPayments() {
 
         return paymentRepository.findAll()
@@ -79,4 +102,20 @@ public class PaymentServiceImpl implements PaymentService {
                 .map(PaymentMapper::mapToPaymentResponseDto)
                 .toList();
     }
+
+    @Override
+    public void deleteAllPayments() {
+        paymentRepository.deleteAll();
+    }
+
+    @Override
+    public void deletePaymentsByPayee(Long payeeId) {
+        paymentRepository.deleteByPayeePersonId(payeeId);
+    }
+
+    @Override
+    public void deletePaymentsByEntry(UUID entryId) {
+        paymentRepository.deleteByEntryId(entryId);
+    }
+
 }

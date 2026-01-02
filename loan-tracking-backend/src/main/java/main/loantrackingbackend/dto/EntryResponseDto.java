@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import main.loantrackingbackend.entity.Payment;
 import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.enums.TransactionType;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,5 +31,7 @@ public class EntryResponseDto {
     private BigDecimal amountRemaining;
     private PaymentStatus status;
     private String notes;
+    private String referenceId;
     private List<String> imageUrls;
+    private List<PaymentResponseDto> payments;
 }

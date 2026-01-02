@@ -62,14 +62,11 @@ public class Entry {
     private PaymentStatus status;
 
     private String notes;
-
-    //@Column(nullable = false)
-    //TODO: Create Logic for Reference ID
-    //private String referenceId;
-
-    // borrower + lender or group name + lender
+    private String referenceId;
 
     @OneToMany(mappedBy = "entry", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ImageProof> imageProofFiles = new ArrayList<>();
 
+    @OneToMany(mappedBy = "entry", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Payment> payments = new ArrayList<>();
 }

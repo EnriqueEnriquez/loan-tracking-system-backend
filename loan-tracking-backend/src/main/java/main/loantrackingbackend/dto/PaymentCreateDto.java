@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -15,7 +16,8 @@ import java.util.List;
 @AllArgsConstructor
 public class PaymentCreateDto {
     private BigDecimal paymentAmount;
-    private Long payeeId;
+    private Long personId;
     private String notes;
     private List<MultipartFile> imageFiles;
+    private UUID entryId;
 }

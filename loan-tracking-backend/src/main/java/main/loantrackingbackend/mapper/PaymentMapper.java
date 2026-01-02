@@ -2,6 +2,7 @@ package main.loantrackingbackend.mapper;
 
 import main.loantrackingbackend.dto.PaymentCreateDto;
 import main.loantrackingbackend.dto.PaymentResponseDto;
+import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.PaymentProof;
 import main.loantrackingbackend.entity.Payment;
 
@@ -35,6 +36,8 @@ public class PaymentMapper {
                             .collect(Collectors.toList())
             );
         }
+
+        dto.setEntryId(payment.getEntry().getId());
 
         return dto;
     }

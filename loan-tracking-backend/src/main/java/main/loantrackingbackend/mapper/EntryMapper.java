@@ -1,15 +1,49 @@
 package main.loantrackingbackend.mapper;
 
 import main.loantrackingbackend.dto.*;
-import main.loantrackingbackend.entity.Entry;
-import main.loantrackingbackend.entity.ImageProof;
-import main.loantrackingbackend.entity.InstallmentExpense;
-import main.loantrackingbackend.entity.StraightExpense;
+import main.loantrackingbackend.entity.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.stream.Collectors;
 
 public class EntryMapper {
+
+    public static String getReferenceId(Entry entry) {
+        String lender = entry.getPersonLender().getFirstName() + " " + entry.getPersonLender().getLastName();
+        String borrower = "";
+
+        switch (entry) {
+            case StraightExpense straightExpense -> borrower = straightExpense.getPersonBorrower().getFirstName()
+                    + " " + straightExpense.getPersonBorrower().getLastName();
+            case InstallmentExpense installment -> borrower = installment.getPersonBorrower().getFirstName()
+                    + " " + installment.getPersonBorrower().getLastName();
+            //TODO: case GroupExpense groupExpense -> borrower = groupExpense.getGroupBorrower().getGroupName();
+            default -> {
+            }
+        }
+        return getInitials(borrower) + "_" + getInitials(lender);
+    }
+
+    /**
+     * Helper method for initials, free to transfer to another class
+     *
+     * @param name derived from First Name & Last Name or Group Name
+     * @return initials
+     */
+    public static String getInitials(String name) {
+        if (name == null || name.isBlank()) return "";
+
+        String[] words = name.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                initials.append(Character.toUpperCase(word.charAt(0)));
+            }
+        }
+
+        return initials.toString();
+    }
 
     private static void mapToCommonDtoFields(Entry source, EntryResponseDto target) {
         target.setId(source.getId());
@@ -24,12 +58,22 @@ public class EntryMapper {
         target.setAmountRemaining(source.getAmountRemaining());
         target.setStatus(source.getStatus());
         target.setNotes(source.getNotes());
+        target.setReferenceId(getReferenceId(source));
 
         if(source.getImageProofFiles() != null) {
             target.setImageUrls(
                     source.getImageProofFiles()
                             .stream()
                             .map(ImageProof::getImageUrl)
+                            .collect(Collectors.toList())
+            );
+        }
+
+        if (source.getPayments() != null) {
+            target.setPayments(
+                    source.getPayments()
+                            .stream()
+                            .map(PaymentMapper::mapToPaymentResponseDto)
                             .collect(Collectors.toList())
             );
         }
