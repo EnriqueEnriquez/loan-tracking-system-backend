@@ -43,15 +43,25 @@ public class EntryServiceImpl implements EntryService {
 
         StraightExpense straightExpense = EntryMapper.mapToStraightExpense(seCreateDto);
 
+        Person lender = personRepository.findById(seCreateDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+
+        straightExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
+        straightExpense.setPersonLender(lender);
+
         Person borrower = personRepository.findById(seCreateDto.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
 
+        straightExpense.setBorrowerName(borrower.getFirstName() + " " + borrower.getLastName());
         straightExpense.setPersonBorrower(borrower);
         StraightExpense savedExpense = entryRepository.save(straightExpense);
 
-        if (seCreateDto.getImageFile() != null && !seCreateDto.getImageFile().isEmpty()) {
-            ImageProof imageProof = imageProofService.saveImageFile(savedExpense, seCreateDto.getImageFile());
-            savedExpense.setImageProof(imageProof);
+        if(seCreateDto.getImageFiles() != null && !seCreateDto.getImageFiles().isEmpty()) {
+            for (var file : seCreateDto.getImageFiles()) {
+                ImageProof proof = imageProofService.saveImageFile(savedExpense, file);
+                savedExpense.getImageProofFiles().add(proof);
+            }
+
             savedExpense = entryRepository.save(savedExpense);
         }
 
@@ -70,8 +80,11 @@ public class EntryServiceImpl implements EntryService {
         se.setDescription(seUpdatedDto.getDescription());
         se.setDateBorrowed(seUpdatedDto.getDateBorrowed());
         se.setDateFullyPaid(seUpdatedDto.getDateFullyPaid());
-        se.setBorrowerName(seUpdatedDto.getBorrowerName());
-        se.setLenderName(seUpdatedDto.getLenderName());
+
+        Person lender = personRepository.findById(seUpdatedDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+        se.setLenderName(lender.getFirstName() + " " + lender.getLastName());
+
         se.setAmountBorrowed(seUpdatedDto.getAmountBorrowed());
         se.setAmountRemaining(seUpdatedDto.getAmountRemaining());
         se.setStatus(seUpdatedDto.getStatus());
@@ -79,21 +92,24 @@ public class EntryServiceImpl implements EntryService {
 
         //TODO: Create logic for updating referenceID
 
-        if (seUpdatedDto.getImageFile() != null && !seUpdatedDto.getImageFile().isEmpty()) {
+        for (var file : se.getImageProofFiles()) {
+            imageProofService.deleteImageFile(file.getId());
+        }
 
-            ImageProof oldImage = se.getImageProof();
-            if (oldImage != null) {
-                imageProofService.deleteImageFile(oldImage.getId());
+        if(seUpdatedDto.getImageFiles() != null && !seUpdatedDto.getImageFiles().isEmpty()) {
+
+            for (var file : seUpdatedDto.getImageFiles()) {
+                    ImageProof proof = imageProofService.saveImageFile(se, file);
+                    se.getImageProofFiles().add(proof);
+
             }
-
-            ImageProof newImage = imageProofService.saveImageFile(se, seUpdatedDto.getImageFile());
-            se.setImageProof(newImage);
         } else {
-            se.setImageProof(null);
+            se.getImageProofFiles().clear();
         }
 
         Person borrower = personRepository.findById(seUpdatedDto.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
+        se.setBorrowerName(borrower.getFirstName() + " " + borrower.getLastName());
         se.setPersonBorrower(borrower);
 
         StraightExpense savedExpense = entryRepository.save(se);
@@ -106,6 +122,10 @@ public class EntryServiceImpl implements EntryService {
         Entry entry = entryRepository.findById(entryID)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense does not exist with id: " + entryID));
 
+        for (var file : entry.getImageProofFiles()) {
+            imageProofService.deleteImageFile(file.getId());
+        }
+
         entryRepository.delete(entry);
     }
 
@@ -116,12 +136,15 @@ public class EntryServiceImpl implements EntryService {
         Person borrower = personRepository.findById(installmentCreateDto.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
 
+        installmentExpense.setBorrowerName(borrower.getFirstName() + " " + borrower.getLastName());
         installmentExpense.setPersonBorrower(borrower);
         InstallmentExpense savedExpense = entryRepository.save(installmentExpense);
 
-        if (installmentCreateDto.getImageFile() != null && !installmentCreateDto.getImageFile().isEmpty()) {
-            ImageProof imageProof = imageProofService.saveImageFile(savedExpense, installmentCreateDto.getImageFile());
-            savedExpense.setImageProof(imageProof);
+        if(installmentCreateDto.getImageFiles() != null && !installmentCreateDto.getImageFiles().isEmpty()) {
+            for (var file : installmentCreateDto.getImageFiles()) {
+                ImageProof proof = imageProofService.saveImageFile(savedExpense, file);
+                savedExpense.getImageProofFiles().add(proof);
+            }
 
             savedExpense = entryRepository.save(savedExpense);
         }

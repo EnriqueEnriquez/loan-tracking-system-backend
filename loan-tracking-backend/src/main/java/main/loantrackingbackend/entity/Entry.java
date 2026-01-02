@@ -10,6 +10,8 @@ import main.loantrackingbackend.enums.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -45,6 +47,10 @@ public class Entry {
     @Column(nullable = false)
     private String lenderName;
 
+    @ManyToOne
+    @JoinColumn(name = "lender_id")
+    private Person personLender;
+
     @Column(nullable = false)
     private BigDecimal amountBorrowed;
 
@@ -63,7 +69,7 @@ public class Entry {
 
     // borrower + lender or group name + lender
 
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "entry")
-    private ImageProof imageProof;
+    @OneToMany(mappedBy = "entry", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ImageProof> imageProofFiles = new ArrayList<>();
 
 }

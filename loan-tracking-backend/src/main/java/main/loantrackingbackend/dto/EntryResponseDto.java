@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -29,5 +30,5 @@ public class EntryResponseDto {
     private BigDecimal amountRemaining;
     private PaymentStatus status;
     private String notes;
-    private String imageUrl;
+    private List<String> imageUrls;
 }

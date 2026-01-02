@@ -47,6 +47,10 @@ public class ImageProofServiceImpl implements ImageProofService {
         ImageProof imageProof = imageProofRepository.findById(imageId).orElseThrow(
                 () -> new ResourceNotFoundException("Image not found")
         );
+
+        Path fileToDeletePath = Paths.get(imageProof.getImageUrl());
+        Files.deleteIfExists(fileToDeletePath);
+
         imageProofRepository.delete(imageProof);
 
     }

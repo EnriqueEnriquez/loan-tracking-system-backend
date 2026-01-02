@@ -2,8 +2,12 @@ package main.loantrackingbackend.mapper;
 
 import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.Entry;
+import main.loantrackingbackend.entity.ImageProof;
 import main.loantrackingbackend.entity.InstallmentExpense;
 import main.loantrackingbackend.entity.StraightExpense;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.stream.Collectors;
 
 public class EntryMapper {
 
@@ -21,11 +25,15 @@ public class EntryMapper {
         target.setStatus(source.getStatus());
         target.setNotes(source.getNotes());
 
-        if (source.getImageProof() != null) {
-            target.setImageUrl(source.getImageProof().getImageUrl());
-        } else {
-            target.setImageUrl(null);
+        if(source.getImageProofFiles() != null) {
+            target.setImageUrls(
+                    source.getImageProofFiles()
+                            .stream()
+                            .map(ImageProof::getImageUrl)
+                            .collect(Collectors.toList())
+            );
         }
+
     }
 
     public static StraightResponseDto mapToStraightResponseDto(StraightExpense straightExpense) {
@@ -58,8 +66,7 @@ public class EntryMapper {
         target.setTransactionType(source.getTransactionType());
         target.setDateBorrowed(source.getDateBorrowed());
         target.setDateFullyPaid(source.getDateFullyPaid());
-        target.setBorrowerName(source.getBorrowerName());
-        target.setLenderName(source.getLenderName());
+
         target.setAmountBorrowed(source.getAmountBorrowed());
         target.setAmountRemaining(source.getAmountRemaining());
         target.setStatus(source.getStatus());

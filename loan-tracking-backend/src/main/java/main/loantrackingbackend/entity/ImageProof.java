@@ -23,7 +23,7 @@ public class ImageProof {
     private String imageName;
     private String imageUrl;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "entry_id")
     private Entry entry;
 }

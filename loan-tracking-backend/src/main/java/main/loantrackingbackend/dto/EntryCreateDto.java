@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -24,11 +25,10 @@ public class EntryCreateDto {
     private TransactionType transactionType;
     private LocalDate dateBorrowed;
     private LocalDate dateFullyPaid;
-    private String borrowerName;
-    private String lenderName;
+    private Long lenderId;
     private BigDecimal amountBorrowed;
     private BigDecimal amountRemaining;
     private PaymentStatus status;
     private String notes;
-    private MultipartFile imageFile;
+    private List<MultipartFile> imageFiles;
 }
