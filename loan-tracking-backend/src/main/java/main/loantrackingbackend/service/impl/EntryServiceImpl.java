@@ -39,6 +39,75 @@ public class EntryServiceImpl implements EntryService {
     }
 
     @Override
+    public EntryResponseDto updateEntryDetails(UUID entryId, EntryUpdateDto updateDto) throws IOException {
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found with id: " + entryId));
+
+        updateCommonFields(entry, updateDto);
+
+        if (entry instanceof StraightExpense  straightEntry) {
+            if (!(updateDto instanceof StraightUpdateDto)) {
+                throw new IllegalArgumentException("DTO type mismatch for StraightExpense");
+            }
+
+            handleStraightExpenseUpdate(straightEntry, (StraightUpdateDto) updateDto);
+            entryRepository.save(straightEntry);
+            return EntryMapper.mapToStraightResponseDto(straightEntry);
+        } else if (entry instanceof InstallmentExpense  installmentEntry) {
+            if (!(updateDto instanceof InstallmentUpdateDto)) {
+                throw new IllegalArgumentException("DTO type mismatch for InstallmentExpense");
+            }
+            handleInstallmentExpenseUpdate(installmentEntry, (InstallmentUpdateDto) updateDto);
+            entryRepository.save(installmentEntry);
+            return EntryMapper.mapToInstallmentResponseDto(installmentEntry);
+        }
+
+        throw new IllegalArgumentException("Unknown Entry Type");
+    }
+
+    private void updateCommonFields(Entry entry, EntryUpdateDto updateDto) throws IOException {
+        if (updateDto.getEntryName() != null) entry.setEntryName(updateDto.getEntryName());
+        if (updateDto.getDescription() != null) entry.setDescription(updateDto.getDescription());
+        if (updateDto.getNotes() != null) entry.setNotes(updateDto.getNotes());
+
+        if (updateDto.getLenderId() != null) {
+            Person lender = personRepository.findById(updateDto.getLenderId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getLenderId()));
+            entry.setPersonLender(lender);
+        }
+
+        if (updateDto.getImageFiles() != null && !updateDto.getImageFiles().isEmpty()) {
+            for (var file : entry.getImageProofFiles()) {
+                imageProofService.deleteImageFile(file.getId());
+            }
+            entry.getImageProofFiles().clear();
+
+            for (var file : updateDto.getImageFiles()) {
+                entry.getImageProofFiles().add(imageProofService.saveImageFile(entry, file));
+            }
+
+        }
+    }
+
+    private void handleStraightExpenseUpdate(StraightExpense entry, StraightUpdateDto updateDto) {
+        if (updateDto.getPersonBorrowedId() != null) {
+            Person personBorrower = personRepository.findById(updateDto.getPersonBorrowedId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowedId()));
+            entry.setPersonBorrower(personBorrower);
+        }
+    }
+
+    private void handleInstallmentExpenseUpdate(InstallmentExpense entry, InstallmentUpdateDto updateDto) {
+        if (updateDto.getPersonBorrowedId() != null) {
+            Person personBorrower = personRepository.findById(updateDto.getPersonBorrowedId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowedId()));
+            entry.setPersonBorrower(personBorrower);
+        }
+
+        //TODO: Decide if start date is also included in editable
+    }
+
+    @Override
     public StraightResponseDto createStraightExpense(StraightCreateDto seCreateDto) throws IOException {
 
         StraightExpense straightExpense = EntryMapper.mapToStraightExpense(seCreateDto);
@@ -71,6 +140,7 @@ public class EntryServiceImpl implements EntryService {
         return EntryMapper.mapToStraightResponseDto(savedExpense);
     }
 
+    //TODO: Delete this after checking if updateEntryDetails is working successfully
     @Override
     public StraightResponseDto updateStraightExpense(UUID entryID, StraightCreateDto seUpdatedDto) throws IOException {
         StraightExpense se = (StraightExpense) entryRepository.findById(entryID)

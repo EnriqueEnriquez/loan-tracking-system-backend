@@ -15,6 +15,7 @@ public interface EntryService {
     EntryResponseDto getEntryById(UUID entryId);
 
     //TODO: Try to create a generic method for updating an entry
+    public EntryResponseDto updateEntryDetails(UUID entryId, EntryUpdateDto updateDto) throws IOException;
 
     // Delete any type of entry
     void deleteEntry(UUID entryId) throws IOException;

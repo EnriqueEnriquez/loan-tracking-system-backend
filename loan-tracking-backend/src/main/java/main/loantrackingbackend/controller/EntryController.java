@@ -1,10 +1,7 @@
 package main.loantrackingbackend.controller;
 
 import lombok.AllArgsConstructor;
-import main.loantrackingbackend.dto.EntryResponseDto;
-import main.loantrackingbackend.dto.InstallmentCreateDto;
-import main.loantrackingbackend.dto.StraightCreateDto;
-import main.loantrackingbackend.dto.StraightResponseDto;
+import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.StraightExpense;
 import main.loantrackingbackend.service.EntryService;
 import org.springframework.http.HttpStatus;
@@ -35,11 +32,19 @@ public class EntryController {
         return new ResponseEntity<>(entryResponseDto, HttpStatus.CREATED);
     }
 
+    //TODO: Delete this after checking if updateEntryDetails is successful
     @PutMapping(path = "/straight/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<StraightResponseDto> updateStraightExpense(@PathVariable("id") UUID entryId, StraightCreateDto seUpdatedDto) throws IOException {
         StraightResponseDto straightResponseDto = entryService.updateStraightExpense(entryId, seUpdatedDto);
 
         return new ResponseEntity<>(straightResponseDto, HttpStatus.OK);
+    }
+
+    @PutMapping( path = "{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
+    public ResponseEntity<EntryResponseDto> updateEntryDetails(@PathVariable("id") UUID entryId, EntryUpdateDto updatedDto) throws IOException {
+        EntryResponseDto entryResponseDto = entryService.updateEntryDetails(entryId, updatedDto);
+
+        return new ResponseEntity<>(entryResponseDto, HttpStatus.OK);
     }
 
     @PostMapping(path = "/installment",consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
