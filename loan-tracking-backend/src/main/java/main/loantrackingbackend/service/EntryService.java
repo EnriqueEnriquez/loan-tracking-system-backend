@@ -1,6 +1,7 @@
 package main.loantrackingbackend.service;
 
 import main.loantrackingbackend.dto.*;
+import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.InstallmentExpense;
 
 import java.io.IOException;

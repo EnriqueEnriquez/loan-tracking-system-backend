@@ -7,6 +7,7 @@ import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.PaymentProof;
 import main.loantrackingbackend.entity.Payment;
 import main.loantrackingbackend.entity.Person;
+import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PaymentMapper;
 import main.loantrackingbackend.repository.EntryRepository;
@@ -17,6 +18,7 @@ import main.loantrackingbackend.service.PaymentService;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -56,8 +58,37 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         payment = paymentRepository.save(payment);
+        updatePaymentStatus(entry);
 
         return PaymentMapper.mapToPaymentResponseDto(payment);
+    }
+
+
+    public void updatePaymentStatus(Entry entry) {
+        BigDecimal totalPaid = BigDecimal.ZERO;
+
+        for (Payment payment : entry.getPayments()) {
+            BigDecimal paymentAmount = payment.getPaymentAmount();
+            if (paymentAmount != null) {
+                totalPaid = totalPaid.add(paymentAmount);
+            }
+        }
+
+        BigDecimal amountBorrowed = entry.getAmountBorrowed() != null ? entry.getAmountBorrowed() : BigDecimal.ZERO;
+        BigDecimal amountRemaining = amountBorrowed.subtract(totalPaid);
+
+        entry.setAmountRemaining(amountRemaining.max(BigDecimal.ZERO));
+
+        if (totalPaid.compareTo(BigDecimal.ZERO) == 0) {
+            entry.setStatus(PaymentStatus.UNPAID);
+        } else if (totalPaid.compareTo(amountBorrowed) < 0) {
+            entry.setStatus(PaymentStatus.PARTIALLY_PAID);
+        } else {
+            entry.setStatus(PaymentStatus.PAID);
+            entry.setDateFullyPaid(LocalDate.now());
+        }
+
+        entryRepository.save(entry);
     }
 
     @Override

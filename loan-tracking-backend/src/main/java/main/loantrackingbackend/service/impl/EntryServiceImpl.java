@@ -3,6 +3,7 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.*;
+import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.repository.EntryRepository;
@@ -12,6 +13,7 @@ import main.loantrackingbackend.service.ImageProofService;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Service
@@ -196,7 +198,7 @@ public class EntryServiceImpl implements EntryService {
         se.setStatus(seUpdatedDto.getStatus());
         se.setNotes(seUpdatedDto.getNotes());
 
-        //TODO: Create logic for updating referenceID
+        se.setReferenceId(getReferenceId(se));
 
         for (var file : se.getImageProofFiles()) {
             imageProofService.deleteImageFile(file.getId());
@@ -259,4 +261,5 @@ public class EntryServiceImpl implements EntryService {
 
         return EntryMapper.mapToInstallmentResponseDto(savedExpense);
     }
+
 }
