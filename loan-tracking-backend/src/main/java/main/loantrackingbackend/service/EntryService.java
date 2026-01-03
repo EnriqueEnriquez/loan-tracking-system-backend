@@ -29,6 +29,4 @@ public interface EntryService {
     InstallmentResponseDto createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException;
 
     GroupExpenseResponseDto createGroupExpense(GroupExpenseCreateDto geCreateDto) throws IOException;
-
-    GroupExpense getGroupExpenseEntity(UUID entryId);
 }

@@ -14,12 +14,12 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "group_expense")
+@Table(name = "groupExpense")
 public class GroupExpense extends Entry {
     @ManyToOne
     @JoinColumn(name = "group_borrower_id")
     private Group groupBorrower;
 
-    @OneToMany(mappedBy = "groupExpense", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "groupExpense", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentAllocation> paymentAllocations = new ArrayList<>();
 }

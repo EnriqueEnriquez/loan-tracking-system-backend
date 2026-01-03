@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -15,4 +16,5 @@ public class PaymentAllocationResponseDto {
     private PersonDto payeeDto;
     private BigDecimal amount;
     private BigDecimal percent;
+    private UUID entryId;
 }

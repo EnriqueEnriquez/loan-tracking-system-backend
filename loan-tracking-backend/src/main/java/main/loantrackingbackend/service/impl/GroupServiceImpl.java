@@ -5,6 +5,7 @@ import main.loantrackingbackend.dto.GroupDto;
 import main.loantrackingbackend.entity.Group;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.GroupMapper;
+import main.loantrackingbackend.repository.GroupMemberRepository;
 import main.loantrackingbackend.repository.GroupRepository;
 import main.loantrackingbackend.service.GroupService;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 public class GroupServiceImpl implements GroupService {
 
     private GroupRepository groupRepository;
+    private GroupMemberRepository groupMemberRepository;
 
     @Override
     public GroupDto createGroup(GroupDto groupDto) {
@@ -59,5 +61,14 @@ public class GroupServiceImpl implements GroupService {
                 .orElseThrow(() -> new ResourceNotFoundException("Group does not exist with id: " + groupId));
 
         groupRepository.delete(group);
+    }
+
+    @Override
+    public long countMembers(Long groupId) {
+        if (!groupRepository.existsById(groupId)) {
+            throw new ResourceNotFoundException("Group not found with id: " + groupId);
+        }
+
+        return groupMemberRepository.countByGroup_GroupId(groupId);
     }
 }

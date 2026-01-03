@@ -27,6 +27,7 @@ public class EntryResponseDto {
     private LocalDate dateFullyPaid;
     private String borrowerName;
     private String lenderName;
+    private Long lenderId;
     private BigDecimal amountBorrowed;
     private BigDecimal amountRemaining;
     private PaymentStatus status;

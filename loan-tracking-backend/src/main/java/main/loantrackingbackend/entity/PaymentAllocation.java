@@ -39,7 +39,7 @@ public class PaymentAllocation {
     private PaymentAllocationStatus paymentAllocationStatus = PaymentAllocationStatus.UNPAID;
 
     @ManyToOne
-    @JoinColumn(name = "entry_id", nullable = false)
+    @JoinColumn(name = "groupExpense")
     private GroupExpense groupExpense;
 
     public boolean isPaid() {

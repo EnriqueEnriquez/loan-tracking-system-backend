@@ -3,146 +3,86 @@ package main.loantrackingbackend.service.impl;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentAllocationCreateDto;
+import main.loantrackingbackend.dto.PaymentAllocationResponseDto;
+import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.GroupExpense;
 import main.loantrackingbackend.entity.GroupMember;
 import main.loantrackingbackend.entity.PaymentAllocation;
-import main.loantrackingbackend.entity.embedabble.GroupMemberId;
-import main.loantrackingbackend.enums.PaymentAllocationStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
+import main.loantrackingbackend.mapper.PaymentAllocationMapper;
+import main.loantrackingbackend.repository.EntryRepository;
 import main.loantrackingbackend.repository.GroupMemberRepository;
 import main.loantrackingbackend.repository.PaymentAllocationRepository;
 import main.loantrackingbackend.service.PaymentAllocationService;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.io.IOException;
 import java.util.List;
-
+import java.util.UUID;
+import java.util.stream.Collectors;
+/**
 @Service
 @AllArgsConstructor
+@Transactional
 public class PaymentAllocationServiceImpl implements PaymentAllocationService {
 
+    private final PaymentAllocationRepository paymentAllocationRepository;
+    private final EntryRepository entryRepository;
     private final GroupMemberRepository groupMemberRepository;
-    private final PaymentAllocationRepository allocationRepository;
 
-    private void assertAllocationsEditable(GroupExpense expense) {
-        boolean locked = expense.getPaymentAllocations().stream()
-                .anyMatch(a -> !a.isEditable());
-        if (locked) {
-            throw new IllegalStateException("Cannot modify allocations once payments have started.");
-        }
+    @Override
+    public PaymentAllocationResponseDto createPaymentAllocation(PaymentAllocationCreateDto dto) throws IOException {
+        GroupExpense groupExpense = (GroupExpense) entryRepository.findById(dto.getEntryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        GroupMember member = (GroupMember) groupMemberRepository.findById(dto.getGroupMemberPersonId());
+
+        PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(dto, groupExpense, member);
+        PaymentAllocation savedAllocation = paymentAllocationRepository.save(allocation);
+
+        return PaymentAllocationMapper.mapToPaymentAllocationResponseDto(savedAllocation);
     }
 
-    private void computePercent(PaymentAllocation allocation, BigDecimal totalAmount) {
-        if (totalAmount.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal percent = allocation.getAmount()
-                    .multiply(BigDecimal.valueOf(100))
-                    .divide(totalAmount, 2, RoundingMode.HALF_UP);
-            allocation.setPercent(percent);
-        } else {
-            allocation.setPercent(BigDecimal.ZERO);
-        }
+    @Override
+    public PaymentAllocationResponseDto getPaymentAllocationById(Long paymentAllocationId) {
+        PaymentAllocation allocation = paymentAllocationRepository.findById(paymentAllocationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment Allocation not found"));
+
+        return PaymentAllocationMapper.mapToPaymentAllocationResponseDto(allocation);
     }
 
-    public void divideEqually(GroupExpense expense) {
-        assertAllocationsEditable(expense);
-
-        List<GroupMember> members = groupMemberRepository.findByGroup_GroupId(
-                expense.getGroupBorrower().getGroupId()
-        );
-
-        if (members.isEmpty()) {
-            throw new IllegalStateException("Group has no members.");
-        }
-
-        BigDecimal total = expense.getAmountBorrowed().setScale(2, RoundingMode.HALF_UP);
-        int count = members.size();
-        BigDecimal amountPerMember = total.divide(BigDecimal.valueOf(count), 2, RoundingMode.UP);
-
-        expense.getPaymentAllocations().clear();
-
-        for (GroupMember member : members) {
-            PaymentAllocation allocation = new PaymentAllocation();
-            allocation.setGroupExpense(expense);
-            allocation.setGroupMember(member);
-            allocation.setAmount(amountPerMember);
-            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.UNPAID);
-
-            computePercent(allocation, total);
-
-            expense.getPaymentAllocations().add(allocation);
-        }
-
-        allocationRepository.saveAll(expense.getPaymentAllocations());
+    @Override
+    public List<PaymentAllocationResponseDto> getPaymentAllocationsByPayee(Long groupMemberPersonId) {
+        List<PaymentAllocation> allocations = paymentAllocationRepository.findByGroupMember_PersonId(groupMemberPersonId);
+        return PaymentAllocationMapper.mapToResponseList(allocations);
     }
 
-    public void divideByPercent(GroupExpense expense, List<PaymentAllocationCreateDto> dtos) {
-        assertAllocationsEditable(expense);
-
-        BigDecimal totalPercent = dtos.stream()
-                .map(PaymentAllocationCreateDto::getPercent)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        if (totalPercent.compareTo(BigDecimal.valueOf(100)) != 0) {
-            throw new IllegalArgumentException("Percent total must equal 100");
-        }
-
-        BigDecimal totalAmount = expense.getAmountBorrowed();
-        expense.getPaymentAllocations().clear();
-
-        for (PaymentAllocationCreateDto dto : dtos) {
-            GroupMember member = groupMemberRepository.findById(
-                    new GroupMemberId(dto.getGroupMemberPersonId(), expense.getGroupBorrower().getGroupId())
-            ).orElseThrow(() -> new ResourceNotFoundException("Group member not found"));
-
-            PaymentAllocation allocation = new PaymentAllocation();
-            allocation.setGroupExpense(expense);
-            allocation.setGroupMember(member);
-            allocation.setPercent(dto.getPercent());
-
-            BigDecimal amount = totalAmount.multiply(dto.getPercent())
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-            allocation.setAmount(amount);
-            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.UNPAID);
-
-            expense.getPaymentAllocations().add(allocation);
-        }
-
-        allocationRepository.saveAll(expense.getPaymentAllocations());
+    @Override
+    public List<PaymentAllocationResponseDto> getPaymentAllocationsByEntry(UUID entryId) {
+        List<PaymentAllocation> allocations = paymentAllocationRepository.findByGroupExpense_Id(entryId);
+        return PaymentAllocationMapper.mapToResponseList(allocations);
     }
 
-    public void divideByAmount(GroupExpense expense, List<PaymentAllocationCreateDto> dtos) {
-        assertAllocationsEditable(expense);
-
-        BigDecimal totalAmount = expense.getAmountBorrowed();
-
-        BigDecimal sum = dtos.stream()
-                .map(PaymentAllocationCreateDto::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        if (sum.compareTo(totalAmount) != 0) {
-            throw new IllegalArgumentException("Sum of allocation amounts must equal total expense");
-        }
-
-        expense.getPaymentAllocations().clear();
-
-        for (PaymentAllocationCreateDto dto : dtos) {
-            GroupMember member = groupMemberRepository.findById(
-                    new GroupMemberId(dto.getGroupMemberPersonId(), expense.getGroupBorrower().getGroupId())
-            ).orElseThrow(() -> new ResourceNotFoundException("Group member not found"));
-
-            PaymentAllocation allocation = new PaymentAllocation();
-            allocation.setGroupExpense(expense);
-            allocation.setGroupMember(member);
-            allocation.setAmount(dto.getAmount());
-            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.UNPAID);
-
-            // compute percent automatically
-            computePercent(allocation, totalAmount);
-
-            expense.getPaymentAllocations().add(allocation);
-        }
-
-        allocationRepository.saveAll(expense.getPaymentAllocations());
+    @Override
+    public List<PaymentAllocationResponseDto> getAllPayments() {
+        List<PaymentAllocation> allocations = paymentAllocationRepository.findAll();
+        return PaymentAllocationMapper.mapToResponseList(allocations);
     }
-}
+
+    @Override
+    public void deleteAllPaymentAllocations() {
+        paymentAllocationRepository.deleteAll();
+    }
+
+    @Override
+    public void deletePaymentAllocationsByGroupMember(Long groupMemberPersonId) {
+        List<PaymentAllocation> allocations = paymentAllocationRepository.findByGroupMember_PersonId(groupMemberPersonId);
+        paymentAllocationRepository.deleteAll(allocations);
+    }
+
+    @Override
+    public void deletePaymentAllocationsByEntry(UUID entryId) {
+        List<PaymentAllocation> allocations = paymentAllocationRepository.findByGroupExpense_Id(entryId);
+        paymentAllocationRepository.deleteAll(allocations);
+    }
+}*/

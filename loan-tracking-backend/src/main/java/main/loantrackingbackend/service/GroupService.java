@@ -1,7 +1,6 @@
 package main.loantrackingbackend.service;
 
 import main.loantrackingbackend.dto.GroupDto;
-import main.loantrackingbackend.dto.GroupMemberDto;
 
 import java.util.List;
 
@@ -16,5 +15,6 @@ public interface GroupService {
 
     void deleteGroup(Long groupId);
 
+    long countMembers(Long groupId);
 
 }

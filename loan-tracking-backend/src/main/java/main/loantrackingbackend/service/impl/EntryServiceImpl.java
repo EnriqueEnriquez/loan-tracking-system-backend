@@ -10,7 +10,6 @@ import main.loantrackingbackend.repository.GroupRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.EntryService;
 import main.loantrackingbackend.service.ImageProofService;
-import main.loantrackingbackend.service.PaymentAllocationService;
 import main.loantrackingbackend.service.PaymentService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,8 +29,7 @@ public class EntryServiceImpl implements EntryService {
     private PersonRepository personRepository;
     private ImageProofService imageProofService;
     private PaymentService paymentService;
-    private GroupRepository groupRepository;
-    private PaymentAllocationService paymentAllocationService;
+    private final GroupRepository groupRepository;
 
     @Override
     public Map<String, List<EntryResponseDto>> getAllEntriesGrouped() {
@@ -47,19 +45,10 @@ public class EntryServiceImpl implements EntryService {
     private EntryResponseDto convertToDto(Entry entry) {
 
         return switch (entry.getTransactionType()) {
-            case STRAIGHT ->
-                    EntryMapper.mapToStraightResponseDto((StraightExpense) entry);
-
-            case INSTALLMENT ->
-                    EntryMapper.mapToInstallmentResponseDto((InstallmentExpense) entry);
-
-            case GROUP ->
-                    EntryMapper.mapToGroupExpenseResponseDto((GroupExpense) entry);
-
-            default ->
-                    throw new IllegalStateException(
-                            "Unexpected transaction type: " + entry.getTransactionType()
-                    );
+            case STRAIGHT -> EntryMapper.mapToStraightResponseDto((StraightExpense) entry);
+            case INSTALLMENT -> EntryMapper.mapToInstallmentResponseDto((InstallmentExpense) entry);
+            case GROUP -> EntryMapper.mapToGroupExpenseResponseDto((GroupExpense) entry);
+            default -> throw new IllegalStateException("Unexpected transaction type: " + entry.getTransactionType());
         };
     }
 
@@ -226,20 +215,31 @@ public class EntryServiceImpl implements EntryService {
     }
 
     @Override
-    public GroupExpenseResponseDto createGroupExpense(GroupExpenseCreateDto createDto) throws IOException {
-        GroupExpense groupExpense = EntryMapper.mapToGroupExpense(createDto);
+    public GroupExpenseResponseDto createGroupExpense(GroupExpenseCreateDto geCreateDto) throws IOException {
+        GroupExpense groupExpense = EntryMapper.mapToGroupExpense(geCreateDto);
 
-        Group groupBorrower = groupRepository.findById(createDto.getBorrowerGroupId())
-                .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + createDto.getBorrowerGroupId()));
-        groupExpense.setGroupBorrower(groupBorrower);
+        Person lender = personRepository.findById(geCreateDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+        groupExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
+        groupExpense.setPersonLender(lender);
+
+        Group borrower = groupRepository.findById(geCreateDto.getBorrowerGroupId())
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+        groupExpense.setGroupBorrower(borrower);
+        groupExpense.setBorrowerName(borrower.getGroupName());
+
+        groupExpense.setAmountRemaining(groupExpense.getAmountBorrowed());
 
         GroupExpense savedExpense = entryRepository.save(groupExpense);
 
-        if (createDto.getPaymentAllocations() != null && !createDto.getPaymentAllocations().isEmpty()) {
-            paymentAllocationService.divideByAmount(savedExpense, createDto.getPaymentAllocations());
+        List<ImageProof> imageProofs = imageProofService.saveImageFilesList(savedExpense, geCreateDto.getImageFiles());
+        if (!imageProofs.isEmpty()) {
+            savedExpense.getImageProofFiles().addAll(imageProofs);
         }
 
         savedExpense.setReferenceId(getReferenceId(savedExpense));
+        savedExpense = entryRepository.save(savedExpense);
+
         return EntryMapper.mapToGroupExpenseResponseDto(savedExpense);
     }
 
@@ -280,15 +280,4 @@ public class EntryServiceImpl implements EntryService {
 
         return initials.toString();
     }
-
-    @Override
-    public GroupExpense getGroupExpenseEntity(UUID entryId) {
-        Entry entry = entryRepository.findById(entryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
-        if (!(entry instanceof GroupExpense groupExpense)) {
-            throw new IllegalArgumentException("Entry is not a GroupExpense");
-        }
-        return groupExpense;
-    }
-
 }

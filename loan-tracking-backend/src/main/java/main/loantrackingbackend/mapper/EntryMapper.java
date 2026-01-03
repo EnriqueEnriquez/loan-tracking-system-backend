@@ -73,6 +73,15 @@ public class EntryMapper {
         return dto;
     }
 
+    public static GroupExpenseResponseDto mapToGroupExpenseResponseDto (GroupExpense groupExpense) {
+        GroupExpenseResponseDto dto = new GroupExpenseResponseDto();
+
+        mapToCommonDtoFields(groupExpense, dto);
+        dto.setBorrowerGroupId(groupExpense.getGroupBorrower().getGroupId());
+
+        return dto;
+    }
+
     private static void mapCommonEntityFields(EntryCreateDto source, Entry target) {
         target.setId(source.getId());
         target.setEntryName(source.getEntryName());
@@ -91,15 +100,6 @@ public class EntryMapper {
         mapCommonEntityFields(dto, straightExpense);
 
         return straightExpense;
-    }
-
-    public static GroupExpenseResponseDto mapToGroupExpenseResponseDto(GroupExpense groupExpense) {
-        GroupExpenseResponseDto dto = new GroupExpenseResponseDto();
-
-        mapToCommonDtoFields(groupExpense, dto);
-        dto.setBorrowerGroupId(groupExpense.getGroupBorrower().getGroupId());
-
-        return dto;
     }
 
     public static GroupExpense mapToGroupExpense(GroupExpenseCreateDto dto) {

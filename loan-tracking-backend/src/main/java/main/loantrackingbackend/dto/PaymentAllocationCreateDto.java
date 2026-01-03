@@ -4,13 +4,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
 public class PaymentAllocationCreateDto {
     private String description;
     private Long groupMemberPersonId;
-    private Long borrowerGroupId;
     private BigDecimal amount;
     private BigDecimal percent;
+    private UUID entryId;
 }
