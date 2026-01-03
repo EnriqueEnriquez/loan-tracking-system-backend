@@ -3,20 +3,19 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.*;
-import main.loantrackingbackend.enums.PaymentStatus;
-import main.loantrackingbackend.enums.TransactionType;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.repository.EntryRepository;
+import main.loantrackingbackend.repository.GroupRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.EntryService;
 import main.loantrackingbackend.service.ImageProofService;
+import main.loantrackingbackend.service.PaymentAllocationService;
 import main.loantrackingbackend.service.PaymentService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +30,8 @@ public class EntryServiceImpl implements EntryService {
     private PersonRepository personRepository;
     private ImageProofService imageProofService;
     private PaymentService paymentService;
+    private GroupRepository groupRepository;
+    private PaymentAllocationService paymentAllocationService;
 
     @Override
     public Map<String, List<EntryResponseDto>> getAllEntriesGrouped() {
@@ -43,21 +44,23 @@ public class EntryServiceImpl implements EntryService {
                 ));
     }
 
-
     private EntryResponseDto convertToDto(Entry entry) {
 
-        if (entry.getTransactionType() == TransactionType.STRAIGHT) {
+        return switch (entry.getTransactionType()) {
+            case STRAIGHT ->
+                    EntryMapper.mapToStraightResponseDto((StraightExpense) entry);
 
-            return EntryMapper.mapToStraightResponseDto((StraightExpense) entry);
+            case INSTALLMENT ->
+                    EntryMapper.mapToInstallmentResponseDto((InstallmentExpense) entry);
 
-        } else if (entry.getTransactionType() == TransactionType.INSTALLMENT) {
+            case GROUP ->
+                    EntryMapper.mapToGroupExpenseResponseDto((GroupExpense) entry);
 
-            return EntryMapper.mapToInstallmentResponseDto((InstallmentExpense) entry);
-
-        } else {
-            //TODO: Implement mapping for group expense
-            return null;
-        }
+            default ->
+                    throw new IllegalStateException(
+                            "Unexpected transaction type: " + entry.getTransactionType()
+                    );
+        };
     }
 
     @Override
@@ -65,15 +68,12 @@ public class EntryServiceImpl implements EntryService {
         Entry entry = entryRepository.findById(entryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
 
-        if (entry instanceof StraightExpense) {
-            return EntryMapper.mapToStraightResponseDto((StraightExpense) entry);
-        } else if (entry instanceof InstallmentExpense) {
-            return EntryMapper.mapToInstallmentResponseDto((InstallmentExpense) entry);
-        } else {
-            throw new ResourceNotFoundException("Entry not found");
-        }
-
-        //TODO: add if statement of instance of Group Expense
+        return switch (entry) {
+            case StraightExpense straightExpense -> EntryMapper.mapToStraightResponseDto(straightExpense);
+            case InstallmentExpense installmentExpense -> EntryMapper.mapToInstallmentResponseDto(installmentExpense);
+            case GroupExpense groupExpense -> EntryMapper.mapToGroupExpenseResponseDto(groupExpense);
+            default -> throw new ResourceNotFoundException("Entry not found");
+        };
     }
 
     @Override
@@ -94,6 +94,9 @@ public class EntryServiceImpl implements EntryService {
             handleInstallmentExpenseUpdate(installmentEntry, updateDto);
             entryRepository.save(installmentEntry);
             return EntryMapper.mapToInstallmentResponseDto(installmentEntry);
+        } else if (entry instanceof GroupExpense groupExpenseEntry) {
+            //handleGroupExpense
+            return null;
         }
 
         throw new IllegalArgumentException("Unknown Entry Type");
@@ -181,43 +184,6 @@ public class EntryServiceImpl implements EntryService {
         return EntryMapper.mapToStraightResponseDto(savedExpense);
     }
 
-    public static String getReferenceId(Entry entry) {
-        String lender = entry.getPersonLender().getFirstName() + " " + entry.getPersonLender().getLastName();
-        String borrower = "";
-
-        switch (entry) {
-            case StraightExpense straightExpense -> borrower = straightExpense.getPersonBorrower().getFirstName()
-                    + " " + straightExpense.getPersonBorrower().getLastName();
-            case InstallmentExpense installment -> borrower = installment.getPersonBorrower().getFirstName()
-                    + " " + installment.getPersonBorrower().getLastName();
-            //TODO: case GroupExpense groupExpense -> borrower = groupExpense.getGroupBorrower().getGroupName();
-            default -> {
-            }
-        }
-        return getInitials(borrower) + "_" + getInitials(lender);
-    }
-
-    /**
-     * Helper method for initials, free to transfer to another class
-     *
-     * @param name derived from First Name & Last Name or Group Name
-     * @return initials
-     */
-    public static String getInitials(String name) {
-        if (name == null || name.isBlank()) return "";
-
-        String[] words = name.trim().split("\\s+");
-        StringBuilder initials = new StringBuilder();
-
-        for (String word : words) {
-            if (!word.isEmpty()) {
-                initials.append(Character.toUpperCase(word.charAt(0)));
-            }
-        }
-
-        return initials.toString();
-    }
-
     @Override
     public void deleteEntry(UUID entryID) throws IOException {
         Entry entry = entryRepository.findById(entryID)
@@ -257,6 +223,72 @@ public class EntryServiceImpl implements EntryService {
         savedExpense = entryRepository.save(savedExpense);
 
         return EntryMapper.mapToInstallmentResponseDto(savedExpense);
+    }
+
+    @Override
+    public GroupExpenseResponseDto createGroupExpense(GroupExpenseCreateDto createDto) throws IOException {
+        GroupExpense groupExpense = EntryMapper.mapToGroupExpense(createDto);
+
+        Group groupBorrower = groupRepository.findById(createDto.getBorrowerGroupId())
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + createDto.getBorrowerGroupId()));
+        groupExpense.setGroupBorrower(groupBorrower);
+
+        GroupExpense savedExpense = entryRepository.save(groupExpense);
+
+        if (createDto.getPaymentAllocations() != null && !createDto.getPaymentAllocations().isEmpty()) {
+            paymentAllocationService.divideByAmount(savedExpense, createDto.getPaymentAllocations());
+        }
+
+        savedExpense.setReferenceId(getReferenceId(savedExpense));
+        return EntryMapper.mapToGroupExpenseResponseDto(savedExpense);
+    }
+
+
+    public static String getReferenceId(Entry entry) {
+        String lender = entry.getPersonLender().getFirstName() + " " + entry.getPersonLender().getLastName();
+        String borrower = "";
+
+        switch (entry) {
+            case StraightExpense straightExpense -> borrower = straightExpense.getPersonBorrower().getFirstName()
+                    + " " + straightExpense.getPersonBorrower().getLastName();
+            case InstallmentExpense installment -> borrower = installment.getPersonBorrower().getFirstName()
+                    + " " + installment.getPersonBorrower().getLastName();
+            case GroupExpense groupExpense -> borrower = groupExpense.getGroupBorrower().getGroupName();
+            default -> {
+            }
+        }
+        return getInitials(borrower) + "_" + getInitials(lender);
+    }
+
+    /**
+     * Helper method for initials, free to transfer to another class
+     *
+     * @param name derived from First Name & Last Name or Group Name
+     * @return initials
+     */
+    public static String getInitials(String name) {
+        if (name == null || name.isBlank()) return "";
+
+        String[] words = name.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                initials.append(Character.toUpperCase(word.charAt(0)));
+            }
+        }
+
+        return initials.toString();
+    }
+
+    @Override
+    public GroupExpense getGroupExpenseEntity(UUID entryId) {
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+        if (!(entry instanceof GroupExpense groupExpense)) {
+            throw new IllegalArgumentException("Entry is not a GroupExpense");
+        }
+        return groupExpense;
     }
 
 }

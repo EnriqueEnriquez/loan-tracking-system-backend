@@ -7,10 +7,9 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-public class PaymentAllocationCreateDto {
+public class PaymentAllocationUpdateDto {
     private String description;
     private Long groupMemberPersonId;
-    private Long borrowerGroupId;
     private BigDecimal amount;
     private BigDecimal percent;
 }

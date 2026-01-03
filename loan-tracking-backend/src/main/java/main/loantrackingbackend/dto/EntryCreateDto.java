@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.enums.TransactionType;
 import org.springframework.web.multipart.MultipartFile;
 

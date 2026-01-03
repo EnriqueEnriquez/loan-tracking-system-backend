@@ -30,15 +30,24 @@ public class PaymentAllocation {
     private GroupMember groupMember;
 
     @Column(nullable = false)
-    private BigDecimal amount;
+    private BigDecimal percent;
 
-    private Double percentage;
+    @Column(nullable = false)
+    private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
     private PaymentAllocationStatus paymentAllocationStatus = PaymentAllocationStatus.UNPAID;
 
     @ManyToOne
-    @JoinColumn(name = "groupExpense", nullable = false)
+    @JoinColumn(name = "entry_id", nullable = false)
     private GroupExpense groupExpense;
+
+    public boolean isPaid() {
+        return paymentAllocationStatus == PaymentAllocationStatus.PAID;
+    }
+
+    public boolean isEditable() {
+        return paymentAllocationStatus == PaymentAllocationStatus.UNPAID;
+    }
 
 }

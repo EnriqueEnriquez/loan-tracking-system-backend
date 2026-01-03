@@ -93,6 +93,22 @@ public class EntryMapper {
         return straightExpense;
     }
 
+    public static GroupExpenseResponseDto mapToGroupExpenseResponseDto(GroupExpense groupExpense) {
+        GroupExpenseResponseDto dto = new GroupExpenseResponseDto();
+
+        mapToCommonDtoFields(groupExpense, dto);
+        dto.setBorrowerGroupId(groupExpense.getGroupBorrower().getGroupId());
+
+        return dto;
+    }
+
+    public static GroupExpense mapToGroupExpense(GroupExpenseCreateDto dto) {
+        GroupExpense groupExpense = new GroupExpense();
+        mapCommonEntityFields(dto, groupExpense);
+
+        return groupExpense;
+    }
+
     public static InstallmentExpense mapToInstallmentExpense(InstallmentCreateDto dto) {
         InstallmentExpense installmentExpense = new InstallmentExpense();
         mapCommonEntityFields(dto, installmentExpense);

@@ -2,6 +2,7 @@ package main.loantrackingbackend.service;
 
 import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.Entry;
+import main.loantrackingbackend.entity.GroupExpense;
 import main.loantrackingbackend.entity.InstallmentExpense;
 
 import java.io.IOException;
@@ -26,4 +27,8 @@ public interface EntryService {
     StraightResponseDto createStraightExpense(StraightCreateDto seCreateDto) throws IOException;
 
     InstallmentResponseDto createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException;
+
+    GroupExpenseResponseDto createGroupExpense(GroupExpenseCreateDto geCreateDto) throws IOException;
+
+    GroupExpense getGroupExpenseEntity(UUID entryId);
 }
