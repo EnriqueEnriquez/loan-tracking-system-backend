@@ -2,7 +2,6 @@ package main.loantrackingbackend.controller;
 
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.*;
-import main.loantrackingbackend.entity.StraightExpense;
 import main.loantrackingbackend.service.EntryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

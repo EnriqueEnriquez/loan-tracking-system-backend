@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import main.loantrackingbackend.enums.PaymentFrequency;
-import main.loantrackingbackend.enums.TransactionType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

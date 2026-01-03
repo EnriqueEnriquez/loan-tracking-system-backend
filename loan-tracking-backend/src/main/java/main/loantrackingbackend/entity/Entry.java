@@ -59,7 +59,7 @@ public class Entry {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private PaymentStatus status;
+    private PaymentStatus status = PaymentStatus.UNPAID;
 
     private String notes;
     private String referenceId;

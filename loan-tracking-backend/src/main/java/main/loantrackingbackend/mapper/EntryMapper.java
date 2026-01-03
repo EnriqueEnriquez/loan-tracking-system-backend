@@ -83,7 +83,6 @@ public class EntryMapper {
 
         target.setAmountBorrowed(source.getAmountBorrowed());
         target.setAmountRemaining(source.getAmountRemaining());
-        target.setStatus(source.getStatus());
         target.setNotes(source.getNotes());
     }
 

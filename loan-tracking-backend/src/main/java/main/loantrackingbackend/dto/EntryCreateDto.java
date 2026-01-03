@@ -28,7 +28,6 @@ public class EntryCreateDto {
     private Long lenderId;
     private BigDecimal amountBorrowed;
     private BigDecimal amountRemaining;
-    private PaymentStatus status;
     private String notes;
     private List<MultipartFile> imageFiles;
 }
