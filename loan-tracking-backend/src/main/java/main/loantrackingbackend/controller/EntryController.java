@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -17,6 +19,13 @@ import java.util.UUID;
 @RequestMapping("/api/entry")
 public class EntryController {
     private EntryService entryService;
+
+    @GetMapping("/all")
+    public ResponseEntity<Map<String, List<EntryResponseDto>>> getAllEntriesGrouped() throws IOException {
+        Map<String, List<EntryResponseDto>> allEntriesGrouped = entryService.getAllEntriesGrouped();
+
+        return new ResponseEntity<>(allEntriesGrouped, HttpStatus.OK);
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<EntryResponseDto> getEntryById(@PathVariable("id") UUID entryID) throws IOException {

@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.*;
 import main.loantrackingbackend.enums.PaymentStatus;
+import main.loantrackingbackend.enums.TransactionType;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.repository.EntryRepository;
@@ -18,7 +19,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -28,6 +31,34 @@ public class EntryServiceImpl implements EntryService {
     private PersonRepository personRepository;
     private ImageProofService imageProofService;
     private PaymentService paymentService;
+
+    @Override
+    public Map<String, List<EntryResponseDto>> getAllEntriesGrouped() {
+        List<Entry> entries = entryRepository.findAll();
+
+        return entries.stream()
+                .collect(Collectors.groupingBy(
+                        entry -> entry.getTransactionType().toString(),
+                        Collectors.mapping(this::convertToDto, Collectors.toList())
+                ));
+    }
+
+
+    private EntryResponseDto convertToDto(Entry entry) {
+
+        if (entry.getTransactionType() == TransactionType.STRAIGHT) {
+
+            return EntryMapper.mapToStraightResponseDto((StraightExpense) entry);
+
+        } else if (entry.getTransactionType() == TransactionType.INSTALLMENT) {
+
+            return EntryMapper.mapToInstallmentResponseDto((InstallmentExpense) entry);
+
+        } else {
+            //TODO: Implement mapping for group expense
+            return null;
+        }
+    }
 
     @Override
     public EntryResponseDto getEntryById(UUID entryId) {
@@ -104,17 +135,17 @@ public class EntryServiceImpl implements EntryService {
     }
 
     private void handleStraightExpenseUpdate(StraightExpense entry, EntryUpdateDto updateDto) {
-        if (updateDto.getPersonBorrowedId() != null && !paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
-            Person personBorrower = personRepository.findById(updateDto.getPersonBorrowedId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowedId()));
+        if (updateDto.getPersonBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+            Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
             entry.setPersonBorrower(personBorrower);
         }
     }
 
     private void handleInstallmentExpenseUpdate(InstallmentExpense entry, EntryUpdateDto updateDto) {
-        if (updateDto.getPersonBorrowedId() != null && !paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
-            Person personBorrower = personRepository.findById(updateDto.getPersonBorrowedId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowedId()));
+        if (updateDto.getPersonBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+            Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
             entry.setPersonBorrower(personBorrower);
         }
 
@@ -202,6 +233,12 @@ public class EntryServiceImpl implements EntryService {
     @Override
     public InstallmentResponseDto createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException {
         InstallmentExpense installmentExpense = EntryMapper.mapToInstallmentExpense(installmentCreateDto);
+
+        Person lender = personRepository.findById(installmentCreateDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+
+        installmentExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
+        installmentExpense.setPersonLender(lender);
 
         Person borrower = personRepository.findById(installmentCreateDto.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found"));

@@ -15,8 +15,8 @@ public class EntryUpdateDto {
     private Long lenderId;
     private String notes;
 
-    private Long personBorrowedId; // Used for Straight/Installment
-    private Long borrowerGroupId;
+    private Long personBorrowerId; // Used for Straight/Installment
+    private Long groupBorrowerId;
 
     private List<MultipartFile> imageFiles;
     private List<Long> deletedImageIds;

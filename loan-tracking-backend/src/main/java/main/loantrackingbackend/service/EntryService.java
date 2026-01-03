@@ -5,12 +5,14 @@ import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.InstallmentExpense;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface EntryService {
 
     // Get all entries (for dashboard)
-    //TODO: List<EntryResponseDto> getAllEntries()
+    Map<String, List<EntryResponseDto>> getAllEntriesGrouped();
 
     // Get specific details regardless of type
     EntryResponseDto getEntryById(UUID entryId);
