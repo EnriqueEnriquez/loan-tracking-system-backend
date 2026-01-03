@@ -32,14 +32,6 @@ public class EntryController {
         return new ResponseEntity<>(entryResponseDto, HttpStatus.CREATED);
     }
 
-    //TODO: Delete this after checking if updateEntryDetails is successful
-    @PutMapping(path = "/straight/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<StraightResponseDto> updateStraightExpense(@PathVariable("id") UUID entryId, StraightCreateDto seUpdatedDto) throws IOException {
-        StraightResponseDto straightResponseDto = entryService.updateStraightExpense(entryId, seUpdatedDto);
-
-        return new ResponseEntity<>(straightResponseDto, HttpStatus.OK);
-    }
-
     @PutMapping( path = "{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
     public ResponseEntity<EntryResponseDto> updateEntryDetails(@PathVariable("id") UUID entryId, EntryUpdateDto updatedDto) throws IOException {
         EntryResponseDto entryResponseDto = entryService.updateEntryDetails(entryId, updatedDto);

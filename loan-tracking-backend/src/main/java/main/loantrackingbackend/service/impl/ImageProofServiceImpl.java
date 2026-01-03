@@ -15,6 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -40,6 +42,26 @@ public class ImageProofServiceImpl implements ImageProofService {
         imageProof.setEntry(entry);
 
         return imageProofRepository.save(imageProof);
+    }
+
+    @Override
+    public List<ImageProof> saveImageFilesList(Entry entry, List<MultipartFile> imageFiles) throws IOException {
+        List<ImageProof> imageProofs = new ArrayList<>();
+
+        if (imageFiles == null || imageFiles.isEmpty()) {
+            return imageProofs;
+        }
+
+        for (var imageFile : imageFiles) {
+            if (imageFile.isEmpty()) {
+                continue;
+            }
+
+            ImageProof imageProof = saveImageFile(entry, imageFile);
+            imageProofs.add(imageProof);
+        }
+
+        return imageProofs;
     }
 
     @Override

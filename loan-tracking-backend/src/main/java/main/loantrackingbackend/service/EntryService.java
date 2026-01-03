@@ -23,7 +23,5 @@ public interface EntryService {
 
     StraightResponseDto createStraightExpense(StraightCreateDto seCreateDto) throws IOException;
 
-    StraightResponseDto updateStraightExpense(UUID entryID, StraightCreateDto seCreateDto) throws IOException;
-
     InstallmentResponseDto createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException;
 }

@@ -32,6 +32,6 @@ public class EntryResponseDto {
     private PaymentStatus status;
     private String notes;
     private String referenceId;
-    private List<String> imageUrls;
+    private List<ImageProofDto> imageProofs;
     private List<PaymentResponseDto> payments;
 }

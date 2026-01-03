@@ -10,10 +10,14 @@ import main.loantrackingbackend.repository.EntryRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.EntryService;
 import main.loantrackingbackend.service.ImageProofService;
+import main.loantrackingbackend.service.PaymentService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,6 +27,7 @@ public class EntryServiceImpl implements EntryService {
     private EntryRepository entryRepository;
     private PersonRepository personRepository;
     private ImageProofService imageProofService;
+    private PaymentService paymentService;
 
     @Override
     public EntryResponseDto getEntryById(UUID entryId) {
@@ -47,19 +52,15 @@ public class EntryServiceImpl implements EntryService {
 
         updateCommonFields(entry, updateDto);
 
-        if (entry instanceof StraightExpense  straightEntry) {
-            if (!(updateDto instanceof StraightUpdateDto)) {
-                throw new IllegalArgumentException("DTO type mismatch for StraightExpense");
-            }
+        if (entry instanceof StraightExpense straightEntry) {
 
-            handleStraightExpenseUpdate(straightEntry, (StraightUpdateDto) updateDto);
+            handleStraightExpenseUpdate(straightEntry, updateDto);
             entryRepository.save(straightEntry);
             return EntryMapper.mapToStraightResponseDto(straightEntry);
+
         } else if (entry instanceof InstallmentExpense  installmentEntry) {
-            if (!(updateDto instanceof InstallmentUpdateDto)) {
-                throw new IllegalArgumentException("DTO type mismatch for InstallmentExpense");
-            }
-            handleInstallmentExpenseUpdate(installmentEntry, (InstallmentUpdateDto) updateDto);
+
+            handleInstallmentExpenseUpdate(installmentEntry, updateDto);
             entryRepository.save(installmentEntry);
             return EntryMapper.mapToInstallmentResponseDto(installmentEntry);
         }
@@ -78,35 +79,45 @@ public class EntryServiceImpl implements EntryService {
             entry.setPersonLender(lender);
         }
 
-        if (updateDto.getImageFiles() != null && !updateDto.getImageFiles().isEmpty()) {
-            for (var file : entry.getImageProofFiles()) {
-                imageProofService.deleteImageFile(file.getId());
-            }
-            entry.getImageProofFiles().clear();
+        if (updateDto.getDeletedImageIds() != null && !updateDto.getDeletedImageIds().isEmpty()) {
+            List<ImageProof> toRemove = new ArrayList<>();
 
-            for (var file : updateDto.getImageFiles()) {
-                entry.getImageProofFiles().add(imageProofService.saveImageFile(entry, file));
+            for (Long id : updateDto.getDeletedImageIds()) {
+                entry.getImageProofFiles().stream()
+                        .filter(img -> img.getId().equals(id))
+                        .findFirst()
+                        .ifPresent(toRemove::add);
             }
 
+            for (ImageProof img : toRemove) {
+                entry.getImageProofFiles().remove(img);
+                imageProofService.deleteImageFile(img.getId());
+            }
+        }
+
+        List<MultipartFile> newFiles = updateDto.getImageFiles();
+        if (newFiles != null && !newFiles.isEmpty()) {
+
+            List<ImageProof> newProofs = imageProofService.saveImageFilesList(entry, newFiles);
+            entry.getImageProofFiles().addAll(newProofs);
         }
     }
 
-    private void handleStraightExpenseUpdate(StraightExpense entry, StraightUpdateDto updateDto) {
-        if (updateDto.getPersonBorrowedId() != null) {
+    private void handleStraightExpenseUpdate(StraightExpense entry, EntryUpdateDto updateDto) {
+        if (updateDto.getPersonBorrowedId() != null && !paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
             Person personBorrower = personRepository.findById(updateDto.getPersonBorrowedId())
                     .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowedId()));
             entry.setPersonBorrower(personBorrower);
         }
     }
 
-    private void handleInstallmentExpenseUpdate(InstallmentExpense entry, InstallmentUpdateDto updateDto) {
-        if (updateDto.getPersonBorrowedId() != null) {
+    private void handleInstallmentExpenseUpdate(InstallmentExpense entry, EntryUpdateDto updateDto) {
+        if (updateDto.getPersonBorrowedId() != null && !paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
             Person personBorrower = personRepository.findById(updateDto.getPersonBorrowedId())
                     .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowedId()));
             entry.setPersonBorrower(personBorrower);
         }
 
-        //TODO: Decide if start date is also included in editable
     }
 
     @Override
@@ -127,16 +138,14 @@ public class EntryServiceImpl implements EntryService {
         straightExpense.setPersonBorrower(borrower);
         StraightExpense savedExpense = entryRepository.save(straightExpense);
 
-        if(seCreateDto.getImageFiles() != null && !seCreateDto.getImageFiles().isEmpty()) {
-            for (var file : seCreateDto.getImageFiles()) {
-                ImageProof proof = imageProofService.saveImageFile(savedExpense, file);
-                savedExpense.getImageProofFiles().add(proof);
-            }
+        List<ImageProof> imageProofs= imageProofService.saveImageFilesList(savedExpense, seCreateDto.getImageFiles());
 
-            savedExpense = entryRepository.save(savedExpense);
+        if (!imageProofs.isEmpty()) {
+            savedExpense.getImageProofFiles().addAll(imageProofs);
         }
 
         savedExpense.setReferenceId(getReferenceId(savedExpense));
+        savedExpense = entryRepository.save(savedExpense);
 
         return EntryMapper.mapToStraightResponseDto(savedExpense);
     }
@@ -178,53 +187,6 @@ public class EntryServiceImpl implements EntryService {
         return initials.toString();
     }
 
-    //TODO: Delete this after checking if updateEntryDetails is working successfully
-    @Override
-    public StraightResponseDto updateStraightExpense(UUID entryID, StraightCreateDto seUpdatedDto) throws IOException {
-        StraightExpense se = (StraightExpense) entryRepository.findById(entryID)
-                .orElseThrow(() -> new ResourceNotFoundException("Straight Expense does not exist with id: " + entryID));
-
-        se.setEntryName(seUpdatedDto.getEntryName());
-        se.setDescription(seUpdatedDto.getDescription());
-        se.setDateBorrowed(seUpdatedDto.getDateBorrowed());
-        se.setDateFullyPaid(seUpdatedDto.getDateFullyPaid());
-
-        Person lender = personRepository.findById(seUpdatedDto.getLenderId())
-                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
-        se.setLenderName(lender.getFirstName() + " " + lender.getLastName());
-
-        se.setAmountBorrowed(seUpdatedDto.getAmountBorrowed());
-        se.setAmountRemaining(seUpdatedDto.getAmountRemaining());
-        se.setStatus(seUpdatedDto.getStatus());
-        se.setNotes(seUpdatedDto.getNotes());
-
-        se.setReferenceId(getReferenceId(se));
-
-        for (var file : se.getImageProofFiles()) {
-            imageProofService.deleteImageFile(file.getId());
-        }
-
-        if(seUpdatedDto.getImageFiles() != null && !seUpdatedDto.getImageFiles().isEmpty()) {
-
-            for (var file : seUpdatedDto.getImageFiles()) {
-                    ImageProof proof = imageProofService.saveImageFile(se, file);
-                    se.getImageProofFiles().add(proof);
-
-            }
-        } else {
-            se.getImageProofFiles().clear();
-        }
-
-        Person borrower = personRepository.findById(seUpdatedDto.getBorrowerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
-        se.setBorrowerName(borrower.getFirstName() + " " + borrower.getLastName());
-        se.setPersonBorrower(borrower);
-
-        StraightExpense savedExpense = entryRepository.save(se);
-
-        return EntryMapper.mapToStraightResponseDto(savedExpense);
-    }
-
     @Override
     public void deleteEntry(UUID entryID) throws IOException {
         Entry entry = entryRepository.findById(entryID)
@@ -248,16 +210,14 @@ public class EntryServiceImpl implements EntryService {
         installmentExpense.setPersonBorrower(borrower);
         InstallmentExpense savedExpense = entryRepository.save(installmentExpense);
 
-        if(installmentCreateDto.getImageFiles() != null && !installmentCreateDto.getImageFiles().isEmpty()) {
-            for (var file : installmentCreateDto.getImageFiles()) {
-                ImageProof proof = imageProofService.saveImageFile(savedExpense, file);
-                savedExpense.getImageProofFiles().add(proof);
-            }
+        List<ImageProof> imageProofs = imageProofService.saveImageFilesList(savedExpense, installmentCreateDto.getImageFiles());
 
-            savedExpense = entryRepository.save(savedExpense);
+        if (!imageProofs.isEmpty()) {
+            savedExpense.getImageProofFiles().addAll(imageProofs);
         }
 
         savedExpense.setReferenceId(getReferenceId(savedExpense));
+        savedExpense = entryRepository.save(savedExpense);
 
         return EntryMapper.mapToInstallmentResponseDto(savedExpense);
     }

@@ -20,12 +20,13 @@ public class EntryMapper {
         target.setAmountRemaining(source.getAmountRemaining());
         target.setStatus(source.getStatus());
         target.setNotes(source.getNotes());
+        target.setReferenceId(source.getReferenceId());
 
         if(source.getImageProofFiles() != null) {
-            target.setImageUrls(
+            target.setImageProofs(
                     source.getImageProofFiles()
                             .stream()
-                            .map(ImageProof::getImageUrl)
+                            .map(EntryMapper::mapToImageProofDto)
                             .collect(Collectors.toList())
             );
         }
@@ -39,6 +40,14 @@ public class EntryMapper {
             );
         }
 
+    }
+
+    public static ImageProofDto mapToImageProofDto(ImageProof imageProof) {
+        ImageProofDto dto = new ImageProofDto();
+        dto.setId(imageProof.getId());
+        dto.setImageUrl(imageProof.getImageUrl());
+        dto.setImageName(imageProof.getImageName());
+        return dto;
     }
 
     public static StraightResponseDto mapToStraightResponseDto(StraightExpense straightExpense) {
