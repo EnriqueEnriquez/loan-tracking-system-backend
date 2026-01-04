@@ -59,10 +59,6 @@ public class PaymentAllocation {
         return PaymentAllocationStatus.PAID;
     }
 
-    public boolean isPaid() {
-        return getPaymentAllocationStatus() == PaymentAllocationStatus.PAID;
-    }
-
     public boolean isEditable() {
         return getPaymentAllocationStatus() == PaymentAllocationStatus.UNPAID;
     }

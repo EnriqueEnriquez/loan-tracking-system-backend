@@ -8,6 +8,7 @@ import lombok.Setter;
 import main.loantrackingbackend.enums.PaymentFrequency;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,4 +40,8 @@ public class InstallmentExpense extends Entry{
 
     @OneToMany(mappedBy = "installmentExpense", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InstallmentTerm> installmentTerms = new ArrayList<>();
+
+    public DayOfWeek getWeeklyPayDay(){
+        return startDate.getDayOfWeek();
+    }
 }

@@ -12,11 +12,11 @@ import main.loantrackingbackend.repository.PaymentRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.PaymentProofService;
 import main.loantrackingbackend.service.PaymentService;
+import main.loantrackingbackend.util.TestDateManager;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +38,7 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setPayee(payee);
 
         // default will be today's date however, user can set payment date for tracking purposes
-        payment.setPaymentDate(dto.getPaymentDate() == null ? LocalDate.now() : dto.getPaymentDate());
+        payment.setPaymentDate(dto.getPaymentDate() == null ? TestDateManager.today() : dto.getPaymentDate());
 
         Entry entry = entryRepository.findById(dto.getEntryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
