@@ -28,8 +28,11 @@ public class InstallmentTerm {
     @Column(nullable = false)
     private LocalDate dueDate;
 
-    @Enumerated(EnumType.STRING)
-    private InstallmentStatus installmentStatus = InstallmentStatus.NOT_STARTED;
+    private String notes;
+
+    //Not stored in DB (not sure if this should be removed)
+//  @Enumerated(EnumType.STRING)
+//  private InstallmentStatus installmentStatus = InstallmentStatus.NOT_STARTED;
 
     @ManyToOne
     @JoinColumn(name = "entry_id")

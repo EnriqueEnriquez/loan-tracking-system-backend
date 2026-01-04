@@ -3,21 +3,17 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.*;
+import main.loantrackingbackend.enums.PaymentFrequency;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.mapper.PaymentAllocationMapper;
-import main.loantrackingbackend.repository.EntryRepository;
-import main.loantrackingbackend.repository.GroupMemberRepository;
-import main.loantrackingbackend.repository.GroupRepository;
-import main.loantrackingbackend.repository.PersonRepository;
-import main.loantrackingbackend.service.EntryService;
-import main.loantrackingbackend.service.ImageProofService;
-import main.loantrackingbackend.service.PaymentAllocationService;
-import main.loantrackingbackend.service.PaymentService;
+import main.loantrackingbackend.repository.*;
+import main.loantrackingbackend.service.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +27,7 @@ public class EntryServiceImpl implements EntryService {
     private EntryRepository entryRepository;
     private PersonRepository personRepository;
     private ImageProofService imageProofService;
+    private InstallmentTermService installmentTermService;
     private PaymentService paymentService;
     private final GroupRepository groupRepository;
     private PaymentAllocationService paymentAllocationService;
@@ -79,7 +76,8 @@ public class EntryServiceImpl implements EntryService {
 
         if (entry instanceof StraightExpense straightEntry) {
 
-            handleStraightExpenseUpdate(straightEntry, updateDto);
+            if (updateDto.getPersonBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty())
+                handleStraightExpenseUpdate(straightEntry, updateDto);
             entryRepository.save(straightEntry);
             return EntryMapper.mapToStraightResponseDto(straightEntry);
 
@@ -100,6 +98,7 @@ public class EntryServiceImpl implements EntryService {
     private void updateCommonFields(Entry entry, EntryUpdateDto updateDto) throws IOException {
         if (updateDto.getEntryName() != null) entry.setEntryName(updateDto.getEntryName());
         if (updateDto.getDescription() != null) entry.setDescription(updateDto.getDescription());
+        if(updateDto.getDateBorrowed() != null) entry.setDateBorrowed(updateDto.getDateBorrowed());
         if (updateDto.getNotes() != null) entry.setNotes(updateDto.getNotes());
 
         if (updateDto.getLenderId() != null) {
@@ -134,6 +133,9 @@ public class EntryServiceImpl implements EntryService {
 
     private void handleStraightExpenseUpdate(StraightExpense entry, EntryUpdateDto updateDto) {
         if (updateDto.getPersonBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+
+            if (updateDto.getAmountBorrowed() != null) entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+
             Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
             entry.setPersonBorrower(personBorrower);
@@ -143,19 +145,31 @@ public class EntryServiceImpl implements EntryService {
 
     private void handleInstallmentExpenseUpdate(InstallmentExpense entry, EntryUpdateDto updateDto) {
         if (updateDto.getPersonBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+            if (updateDto.getAmountBorrowed() != null) entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+
             Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
             entry.setPersonBorrower(personBorrower);
+
+            if (updateDto.getPaymentTerms() != 0) entry.setPaymentTerms(updateDto.getPaymentTerms());
+            if (updateDto.getPaymentFrequency() != null) entry.setPaymentFrequency(updateDto.getPaymentFrequency());
+            if (updateDto.getPaymentAmountPerTerm() != null) entry.setPaymentAmountPerTerm(updateDto.getPaymentAmountPerTerm());
+
+            installmentTermService.deleteInstallmentTermsList(entry);
+            List<InstallmentTerm> installmentTermList = installmentTermService.createInstallmentTermsList(entry);
+            entry.setInstallmentTerms(installmentTermList);
         }
         entry.setReferenceId(getReferenceId(entry));
+
     }
 
     private GroupExpense handleGroupExpenseUpdate(GroupExpense entry, EntryUpdateDto updateDto) throws IOException {
         if(updateDto.getGroupBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+            if (updateDto.getAmountBorrowed() != null) entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+
             Group groupBorrower = groupRepository.findById(updateDto.getGroupBorrowerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + updateDto.getGroupBorrowerId()));
             entry.setGroupBorrower(groupBorrower);
-
         }
         entry.setReferenceId(getReferenceId(entry));
 
@@ -246,6 +260,10 @@ public class EntryServiceImpl implements EntryService {
         }
 
         savedExpense.setReferenceId(getReferenceId(savedExpense));
+
+        List<InstallmentTerm> installmentTermsList = installmentTermService.createInstallmentTermsList(savedExpense);
+        savedExpense.setInstallmentTerms(installmentTermsList);
+
         savedExpense = entryRepository.save(savedExpense);
 
         return EntryMapper.mapToInstallmentResponseDto(savedExpense);

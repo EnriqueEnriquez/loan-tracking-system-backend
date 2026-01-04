@@ -37,6 +37,6 @@ public class InstallmentExpense extends Entry{
     @Column(nullable = false)
     private BigDecimal paymentAmountPerTerm;
 
-    @OneToMany(mappedBy = "installment_expense", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "installmentExpense", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InstallmentTerm> installmentTerms = new ArrayList<>();
 }
