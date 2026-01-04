@@ -4,8 +4,10 @@ import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentCreateDto;
 import main.loantrackingbackend.dto.PaymentResponseDto;
 import main.loantrackingbackend.entity.*;
+import main.loantrackingbackend.enums.InstallmentStatus;
 import main.loantrackingbackend.enums.PaymentAllocationStatus;
 import main.loantrackingbackend.enums.PaymentStatus;
+import main.loantrackingbackend.enums.InstallmentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PaymentMapper;
 import main.loantrackingbackend.repository.EntryRepository;
@@ -101,12 +103,8 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    public void updatePaymentAllocationStatus(
-            GroupExpense groupExpense,
-            PaymentAllocation allocation
-    ) {
-        Long allocationPersonId =
-                allocation.getGroupMember().getPerson().getPersonId();
+    public void updatePaymentAllocationStatus(GroupExpense groupExpense, PaymentAllocation allocation) {
+        Long allocationPersonId = allocation.getGroupMember().getPerson().getPersonId();
 
         BigDecimal totalPaidByMember = BigDecimal.ZERO;
 
@@ -180,16 +178,30 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public void deleteAllPayments() {
         paymentRepository.deleteAll();
+
+        List<Entry> allEntries = entryRepository.findAll();
+        for (Entry entry : allEntries) {
+            updatePaymentStatus(entry);
+        }
     }
 
     @Override
     public void deletePaymentsByPayee(Long payeeId) {
         paymentRepository.deleteByPayeePersonId(payeeId);
+
+        List<Entry> entries = entryRepository.findAllByPaymentsPayeePersonId(payeeId);
+        for (Entry entry : entries) {
+            updatePaymentStatus(entry);
+        }
     }
 
     @Override
     public void deletePaymentsByEntry(UUID entryId) {
         paymentRepository.deleteByEntryId(entryId);
-    }
 
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        updatePaymentStatus(entry);
+    }
 }

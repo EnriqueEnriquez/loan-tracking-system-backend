@@ -1,11 +1,11 @@
 package main.loantrackingbackend.entity;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import main.loantrackingbackend.enums.InstallmentStatus;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -19,12 +19,17 @@ import java.util.UUID;
 public class InstallmentTerm {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID installmentID;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long termId;
 
+    @Column(nullable = false)
     private int termNumber;
 
+    @Column(nullable = false)
     private LocalDate dueDate;
+
+    @Enumerated(EnumType.STRING)
+    private InstallmentStatus installmentStatus = InstallmentStatus.NOT_STARTED;
 
     @ManyToOne
     @JoinColumn(name = "entry_id")
