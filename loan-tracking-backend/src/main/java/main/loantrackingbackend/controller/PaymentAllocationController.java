@@ -37,9 +37,9 @@ public class PaymentAllocationController {
         return ResponseEntity.ok(paymentAllocationService.getPaymentAllocationById(entryId));
     }
 
-    @GetMapping("/payment-allocations/member/{groupMemberPersonId}")
-    public ResponseEntity<List<PaymentAllocationResponseDto>> getAllocationsByMember(@PathVariable Long groupMemberPersonId) {
-        return ResponseEntity.ok(paymentAllocationService.getPaymentAllocationByGroupMember(groupMemberPersonId));
+    @GetMapping("/{entryId}/payment-allocations/member/{groupMemberPersonId}")
+    public ResponseEntity<List<PaymentAllocationResponseDto>> getAllocationsByMember(@PathVariable UUID entryId, @PathVariable Long groupMemberPersonId) {
+        return ResponseEntity.ok(paymentAllocationService.getPaymentAllocationByGroupMember(entryId, groupMemberPersonId));
     }
 
     @GetMapping("/payment-allocations")
@@ -53,9 +53,9 @@ public class PaymentAllocationController {
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/payment-allocations/member/{groupMemberPersonId}")
-    public ResponseEntity<Void> deleteAllocationsByMember(@PathVariable Long groupMemberPersonId) {
-        paymentAllocationService.deletePaymentAllocationByGroupMember(groupMemberPersonId);
+    @DeleteMapping("/{entryId}/payment-allocations/member/{groupMemberPersonId}")
+    public ResponseEntity<Void> deleteAllocationsByMember(@PathVariable UUID entryId, @PathVariable Long groupMemberPersonId) {
+        paymentAllocationService.deletePaymentAllocationByGroupMember(entryId, groupMemberPersonId);
         return ResponseEntity.noContent().build();
     }
 

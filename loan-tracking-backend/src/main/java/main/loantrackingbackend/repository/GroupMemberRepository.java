@@ -1,6 +1,5 @@
 package main.loantrackingbackend.repository;
 
-import main.loantrackingbackend.entity.Group;
 import main.loantrackingbackend.entity.GroupMember;
 import main.loantrackingbackend.entity.embedabble.GroupMemberId;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,5 +11,5 @@ public interface GroupMemberRepository extends JpaRepository<GroupMember, GroupM
     List<GroupMember> findByGroup_GroupId(Long groupId);
     long countByGroup_GroupId(Long groupId);
 
-    GroupMember findById(Long personId);
+    GroupMember findByGroup_GroupIdAndPerson_PersonId(Long groupId, Long personId);
 }

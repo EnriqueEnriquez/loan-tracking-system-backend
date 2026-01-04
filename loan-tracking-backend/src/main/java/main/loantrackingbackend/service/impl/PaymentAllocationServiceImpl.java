@@ -3,14 +3,12 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentAllocationCreateDto;
 import main.loantrackingbackend.dto.PaymentAllocationResponseDto;
-import main.loantrackingbackend.entity.Entry;
-import main.loantrackingbackend.entity.GroupExpense;
-import main.loantrackingbackend.entity.GroupMember;
-import main.loantrackingbackend.entity.PaymentAllocation;
+import main.loantrackingbackend.entity.*;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PaymentAllocationMapper;
 import main.loantrackingbackend.repository.EntryRepository;
 import main.loantrackingbackend.repository.GroupMemberRepository;
+import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.repository.PaymentAllocationRepository;
 import main.loantrackingbackend.service.PaymentAllocationService;
 import org.springframework.stereotype.Service;
@@ -24,12 +22,16 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
 
     private final PaymentAllocationRepository paymentAllocationRepository;
     private final EntryRepository entryRepository;
+    private final PersonRepository personRepository;
     private final GroupMemberRepository groupMemberRepository;
 
     @Override
     public PaymentAllocationResponseDto createPaymentAllocation(PaymentAllocationCreateDto dto) {
         GroupExpense groupExpense = entryRepository.findGEById(dto.getGroupExpenseEntryId());
-        GroupMember member = groupMemberRepository.findById(dto.getGroupMemberPersonId());
+        if (groupExpense == null) { throw new ResourceNotFoundException("Group expense not found"); }
+
+        Long groupId = groupExpense.getGroupBorrower().getGroupId();
+        GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(groupId, dto.getGroupMemberPersonId());
 
         PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(dto, groupExpense, member);
         PaymentAllocation savedAllocation = paymentAllocationRepository.save(allocation);
@@ -46,9 +48,15 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
     }
 
     @Override
-    public List<PaymentAllocationResponseDto> getPaymentAllocationByGroupMember(Long groupMemberPersonId) {
+    public List<PaymentAllocationResponseDto> getPaymentAllocationByGroupMember(UUID groupExpenseEntryId, Long personId) {
+        GroupExpense groupExpense = entryRepository.findGEById(groupExpenseEntryId);
+        if (groupExpense == null) {
+            throw new ResourceNotFoundException("Group expense not found");
+        }
 
-        GroupMember member = groupMemberRepository.findById(groupMemberPersonId);
+        Long groupId = groupExpense.getGroupBorrower().getGroupId();
+
+        GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(groupId, personId);
 
         return PaymentAllocationMapper.mapToResponseList(
                 paymentAllocationRepository.findByGroupMember(member)
@@ -83,8 +91,12 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
     }
 
     @Override
-    public void deletePaymentAllocationByGroupMember(Long groupMemberPersonId) {
-        GroupMember member = groupMemberRepository.findById(groupMemberPersonId);
+    public void deletePaymentAllocationByGroupMember(UUID groupExpenseEntryId, Long personId) {
+        GroupExpense groupExpense = entryRepository.findGEById(groupExpenseEntryId);
+        if (groupExpense == null) { throw new ResourceNotFoundException("Group expense not found");}
+
+        Long groupId = groupExpense.getGroupBorrower().getGroupId();
+        GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(groupId, personId);
 
         paymentAllocationRepository.deleteAll(paymentAllocationRepository.findByGroupMember(member));
     }

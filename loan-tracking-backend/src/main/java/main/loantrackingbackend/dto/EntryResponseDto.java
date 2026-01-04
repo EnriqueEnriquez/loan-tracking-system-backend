@@ -35,4 +35,5 @@ public class EntryResponseDto {
     private String referenceId;
     private List<ImageProofDto> imageProofs;
     private List<PaymentResponseDto> payments;
+    private List<PaymentAllocationResponseDto> paymentAllocations;
 }
