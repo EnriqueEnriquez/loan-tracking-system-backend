@@ -36,6 +36,8 @@ public class PaymentAllocation {
     @Column(nullable = false)
     private BigDecimal amount;
 
+    private BigDecimal amountPaid = BigDecimal.ZERO;    // default
+
     @Enumerated(EnumType.STRING)
     private PaymentAllocationStatus paymentAllocationStatus = PaymentAllocationStatus.UNPAID;
 

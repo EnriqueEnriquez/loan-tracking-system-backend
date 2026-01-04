@@ -1,6 +1,5 @@
 package main.loantrackingbackend.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

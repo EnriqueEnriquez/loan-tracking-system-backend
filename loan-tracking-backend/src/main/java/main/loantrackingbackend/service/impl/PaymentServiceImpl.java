@@ -3,14 +3,13 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentCreateDto;
 import main.loantrackingbackend.dto.PaymentResponseDto;
-import main.loantrackingbackend.entity.Entry;
-import main.loantrackingbackend.entity.PaymentProof;
-import main.loantrackingbackend.entity.Payment;
-import main.loantrackingbackend.entity.Person;
+import main.loantrackingbackend.entity.*;
+import main.loantrackingbackend.enums.PaymentAllocationStatus;
 import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PaymentMapper;
 import main.loantrackingbackend.repository.EntryRepository;
+import main.loantrackingbackend.repository.PaymentAllocationRepository;
 import main.loantrackingbackend.repository.PaymentRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.PaymentProofService;
@@ -31,6 +30,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PersonRepository personRepository;
     private final PaymentProofService paymentProofService;
     private final EntryRepository entryRepository;
+    private final PaymentAllocationRepository paymentAllocationRepository;
 
     @Override
     public PaymentResponseDto createPayment(PaymentCreateDto dto) throws IOException {
@@ -41,7 +41,8 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = PaymentMapper.mapToPayment(dto);
         payment.setPayee(payee);
 
-        payment.setPaymentDate(LocalDate.now());
+        // default will be today's date however, user can set payment date for tracking purposes
+        payment.setPaymentDate(dto.getPaymentDate() == null ? LocalDate.now() : dto.getPaymentDate());
 
         Entry entry = entryRepository.findById(dto.getEntryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
@@ -63,21 +64,20 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentMapper.mapToPaymentResponseDto(payment);
     }
 
-
     public void updatePaymentStatus(Entry entry) {
         BigDecimal totalPaid = BigDecimal.ZERO;
 
         for (Payment payment : entry.getPayments()) {
-            BigDecimal paymentAmount = payment.getPaymentAmount();
-            if (paymentAmount != null) {
-                totalPaid = totalPaid.add(paymentAmount);
+            if (payment.getPaymentAmount() != null) {
+                totalPaid = totalPaid.add(payment.getPaymentAmount());
             }
         }
 
-        BigDecimal amountBorrowed = entry.getAmountBorrowed() != null ? entry.getAmountBorrowed() : BigDecimal.ZERO;
-        BigDecimal amountRemaining = amountBorrowed.subtract(totalPaid);
+        BigDecimal amountBorrowed =
+                entry.getAmountBorrowed() != null ? entry.getAmountBorrowed() : BigDecimal.ZERO;
 
-        entry.setAmountRemaining(amountRemaining.max(BigDecimal.ZERO));
+        BigDecimal amountRemaining = amountBorrowed.subtract(totalPaid).max(BigDecimal.ZERO);
+        entry.setAmountRemaining(amountRemaining);
 
         if (totalPaid.compareTo(BigDecimal.ZERO) == 0) {
             entry.setStatus(PaymentStatus.UNPAID);
@@ -88,7 +88,50 @@ public class PaymentServiceImpl implements PaymentService {
             entry.setDateFullyPaid(LocalDate.now());
         }
 
+        if (entry instanceof GroupExpense groupExpense) {
+            updateAllPaymentAllocations(groupExpense);
+        }
+
         entryRepository.save(entry);
+    }
+
+    private void updateAllPaymentAllocations(GroupExpense groupExpense) {
+        for (PaymentAllocation allocation : groupExpense.getPaymentAllocations()) {
+            updatePaymentAllocationStatus(groupExpense, allocation);
+        }
+    }
+
+    public void updatePaymentAllocationStatus(
+            GroupExpense groupExpense,
+            PaymentAllocation allocation
+    ) {
+        Long allocationPersonId =
+                allocation.getGroupMember().getPerson().getPersonId();
+
+        BigDecimal totalPaidByMember = BigDecimal.ZERO;
+
+        for (Payment payment : groupExpense.getPayments()) {
+            if (payment.getPayee().getPersonId().equals(allocationPersonId)
+                    && payment.getPaymentAmount() != null) {
+
+                totalPaidByMember =
+                        totalPaidByMember.add(payment.getPaymentAmount());
+            }
+        }
+
+        allocation.setAmountPaid(totalPaidByMember);
+
+        BigDecimal allocatedAmount = allocation.getAmount();
+
+        if (totalPaidByMember.compareTo(BigDecimal.ZERO) == 0) {
+            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.UNPAID);
+        } else if (totalPaidByMember.compareTo(allocatedAmount) < 0) {
+            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.PARTIALLY_PAID);
+        } else {
+            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.PAID);
+        }
+
+        paymentAllocationRepository.save(allocation);
     }
 
     @Override
