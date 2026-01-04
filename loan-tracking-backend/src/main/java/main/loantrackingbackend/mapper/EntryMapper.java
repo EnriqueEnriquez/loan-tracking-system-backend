@@ -79,6 +79,15 @@ public class EntryMapper {
         mapToCommonDtoFields(groupExpense, dto);
         dto.setBorrowerGroupId(groupExpense.getGroupBorrower().getGroupId());
 
+        if (groupExpense.getPaymentAllocations() != null) {
+            dto.setPaymentAllocations(
+                    groupExpense.getPaymentAllocations()
+                            .stream()
+                            .map(PaymentAllocationMapper::mapToPaymentAllocationResponseDto)
+                            .collect(Collectors.toList())
+            );
+        }
+
         return dto;
     }
 
