@@ -8,7 +8,6 @@ import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PaymentAllocationMapper;
 import main.loantrackingbackend.repository.EntryRepository;
 import main.loantrackingbackend.repository.GroupMemberRepository;
-import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.repository.PaymentAllocationRepository;
 import main.loantrackingbackend.service.PaymentAllocationService;
 import org.springframework.stereotype.Service;
@@ -22,7 +21,6 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
 
     private final PaymentAllocationRepository paymentAllocationRepository;
     private final EntryRepository entryRepository;
-    private final PersonRepository personRepository;
     private final GroupMemberRepository groupMemberRepository;
 
     @Override

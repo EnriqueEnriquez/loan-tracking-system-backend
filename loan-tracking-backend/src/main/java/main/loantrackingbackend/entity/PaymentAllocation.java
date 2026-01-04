@@ -36,29 +36,9 @@ public class PaymentAllocation {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    @Transient
-    private BigDecimal amountPaid;    // default
-
-    @Transient
-    private PaymentAllocationStatus paymentAllocationStatus;
-
     @ManyToOne
     @JoinColumn(name = "groupExpense", nullable = false)
     private GroupExpense groupExpense;
-
-    public PaymentAllocationStatus getPaymentAllocationStatus() {
-        BigDecimal paid = getAmountPaid();
-
-        if (paid.compareTo(BigDecimal.ZERO) >= 0) {
-            return PaymentAllocationStatus.UNPAID;
-        }
-
-        if (paid.compareTo(amount) < 0) {
-            return PaymentAllocationStatus.PARTIALLY_PAID;
-        }
-
-        return PaymentAllocationStatus.PAID;
-    }
 
     public BigDecimal getAmountPaid() {
         if (groupExpense == null || groupExpense.getPayments() == null) {
@@ -70,6 +50,13 @@ public class PaymentAllocation {
                 .filter(payment -> payment.getPayee().getPersonId().equals(groupMember.getPerson().getPersonId()))
                 .map(Payment::getPaymentAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public PaymentAllocationStatus getPaymentAllocationStatus() {
+        BigDecimal paid = getAmountPaid();
+        if (paid.compareTo(BigDecimal.ZERO) == 0) return PaymentAllocationStatus.UNPAID;
+        if (paid.compareTo(amount) < 0) return PaymentAllocationStatus.PARTIALLY_PAID;
+        return PaymentAllocationStatus.PAID;
     }
 
     public boolean isPaid() {

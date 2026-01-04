@@ -1,6 +1,7 @@
 package main.loantrackingbackend.repository;
 
 import main.loantrackingbackend.entity.Entry;
+import main.loantrackingbackend.entity.GroupExpense;
 import main.loantrackingbackend.entity.Payment;
 import main.loantrackingbackend.entity.Person;
 import org.springframework.data.jpa.repository.JpaRepository;

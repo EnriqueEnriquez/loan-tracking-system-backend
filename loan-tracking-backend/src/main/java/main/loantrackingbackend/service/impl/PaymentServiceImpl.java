@@ -8,7 +8,6 @@ import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PaymentMapper;
 import main.loantrackingbackend.repository.EntryRepository;
-import main.loantrackingbackend.repository.PaymentAllocationRepository;
 import main.loantrackingbackend.repository.PaymentRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.PaymentProofService;
@@ -29,11 +28,9 @@ public class PaymentServiceImpl implements PaymentService {
     private final PersonRepository personRepository;
     private final PaymentProofService paymentProofService;
     private final EntryRepository entryRepository;
-    private final PaymentAllocationRepository paymentAllocationRepository;
 
     @Override
     public PaymentResponseDto createPayment(PaymentCreateDto dto) throws IOException {
-
         Person payee = personRepository.findById(dto.getPersonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Payee not found"));
 
@@ -45,6 +42,11 @@ public class PaymentServiceImpl implements PaymentService {
 
         Entry entry = entryRepository.findById(dto.getEntryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        // can change this if we have a different rule for overpayment
+        if (entry.getStatus() == PaymentStatus.PAID) {
+            throw new IllegalStateException("This entry is already fully paid. No more payments allowed.");
+        }
 
         payment.setEntry(entry);
 
@@ -84,7 +86,9 @@ public class PaymentServiceImpl implements PaymentService {
             entry.setStatus(PaymentStatus.PARTIALLY_PAID);
         } else {
             entry.setStatus(PaymentStatus.PAID);
-            entry.setDateFullyPaid(LocalDate.now());
+            if (entry.getDateFullyPaid() == null) {
+                entry.setDateFullyPaid(entry.getPayments().getLast().getPaymentDate());
+            }
         }
 
         entryRepository.save(entry);
