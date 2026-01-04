@@ -4,10 +4,7 @@ import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentCreateDto;
 import main.loantrackingbackend.dto.PaymentResponseDto;
 import main.loantrackingbackend.entity.*;
-import main.loantrackingbackend.enums.InstallmentStatus;
-import main.loantrackingbackend.enums.PaymentAllocationStatus;
 import main.loantrackingbackend.enums.PaymentStatus;
-import main.loantrackingbackend.enums.InstallmentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PaymentMapper;
 import main.loantrackingbackend.repository.EntryRepository;
@@ -90,46 +87,7 @@ public class PaymentServiceImpl implements PaymentService {
             entry.setDateFullyPaid(LocalDate.now());
         }
 
-        if (entry instanceof GroupExpense groupExpense) {
-            updateAllPaymentAllocations(groupExpense);
-        }
-
         entryRepository.save(entry);
-    }
-
-    private void updateAllPaymentAllocations(GroupExpense groupExpense) {
-        for (PaymentAllocation allocation : groupExpense.getPaymentAllocations()) {
-            updatePaymentAllocationStatus(groupExpense, allocation);
-        }
-    }
-
-    public void updatePaymentAllocationStatus(GroupExpense groupExpense, PaymentAllocation allocation) {
-        Long allocationPersonId = allocation.getGroupMember().getPerson().getPersonId();
-
-        BigDecimal totalPaidByMember = BigDecimal.ZERO;
-
-        for (Payment payment : groupExpense.getPayments()) {
-            if (payment.getPayee().getPersonId().equals(allocationPersonId)
-                    && payment.getPaymentAmount() != null) {
-
-                totalPaidByMember =
-                        totalPaidByMember.add(payment.getPaymentAmount());
-            }
-        }
-
-        allocation.setAmountPaid(totalPaidByMember);
-
-        BigDecimal allocatedAmount = allocation.getAmount();
-
-        if (totalPaidByMember.compareTo(BigDecimal.ZERO) == 0) {
-            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.UNPAID);
-        } else if (totalPaidByMember.compareTo(allocatedAmount) < 0) {
-            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.PARTIALLY_PAID);
-        } else {
-            allocation.setPaymentAllocationStatus(PaymentAllocationStatus.PAID);
-        }
-
-        paymentAllocationRepository.save(allocation);
     }
 
     @Override

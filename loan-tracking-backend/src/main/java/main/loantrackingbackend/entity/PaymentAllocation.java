@@ -36,15 +36,47 @@ public class PaymentAllocation {
     @Column(nullable = false)
     private BigDecimal amount;
 
-    private BigDecimal amountPaid = BigDecimal.ZERO;    // default
+    @Transient
+    private BigDecimal amountPaid;    // default
 
-    @Enumerated(EnumType.STRING)
-    private PaymentAllocationStatus paymentAllocationStatus = PaymentAllocationStatus.UNPAID;
+    @Transient
+    private PaymentAllocationStatus paymentAllocationStatus;
 
     @ManyToOne
     @JoinColumn(name = "groupExpense", nullable = false)
     private GroupExpense groupExpense;
 
-    public boolean isPaid() { return paymentAllocationStatus == PaymentAllocationStatus.PAID;}
-    public boolean isEditable() { return paymentAllocationStatus == PaymentAllocationStatus.UNPAID;}
+    public PaymentAllocationStatus getPaymentAllocationStatus() {
+        BigDecimal paid = getAmountPaid();
+
+        if (paid.compareTo(BigDecimal.ZERO) >= 0) {
+            return PaymentAllocationStatus.UNPAID;
+        }
+
+        if (paid.compareTo(amount) < 0) {
+            return PaymentAllocationStatus.PARTIALLY_PAID;
+        }
+
+        return PaymentAllocationStatus.PAID;
+    }
+
+    public BigDecimal getAmountPaid() {
+        if (groupExpense == null || groupExpense.getPayments() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        return groupExpense.getPayments()
+                .stream()
+                .filter(payment -> payment.getPayee().getPersonId().equals(groupMember.getPerson().getPersonId()))
+                .map(Payment::getPaymentAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public boolean isPaid() {
+        return getPaymentAllocationStatus() == PaymentAllocationStatus.PAID;
+    }
+
+    public boolean isEditable() {
+        return getPaymentAllocationStatus() == PaymentAllocationStatus.UNPAID;
+    }
 }

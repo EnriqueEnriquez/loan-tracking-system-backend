@@ -5,7 +5,6 @@ import main.loantrackingbackend.dto.PaymentAllocationResponseDto;
 import main.loantrackingbackend.dto.PaymentAllocationUpdateDto;
 import main.loantrackingbackend.entity.GroupExpense;
 import main.loantrackingbackend.entity.GroupMember;
-import main.loantrackingbackend.mapper.GroupMemberMapper;
 import main.loantrackingbackend.entity.PaymentAllocation;
 
 import java.util.List;
@@ -25,8 +24,6 @@ public class PaymentAllocationMapper {
         dto.setGroupMemberPersonId(allocation.getGroupMember() != null ? allocation.getGroupMember().getPerson().getPersonId() : null);
         dto.setBorrowerGroupId(allocation.getGroupExpense() != null ? allocation.getGroupExpense().getGroupBorrower().getGroupId() : null);
         dto.setAmount(allocation.getAmount());
-        dto.setAmountPaid(allocation.getAmountPaid());
-        dto.setPaymentAllocationStatus(allocation.getPaymentAllocationStatus());
         dto.setDescription(allocation.getDescription());
         dto.setPercent(allocation.getPercent());
 
