@@ -62,6 +62,13 @@ public class EntryController {
         return new ResponseEntity<>(entryResponseDto, HttpStatus.CREATED);
     }
 
+    @PostMapping(path = "/group-expense-with-allocations", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<EntryResponseDto> createGroupExpenseWithAllocations(GroupExpenseCreateDto groupExpenseCreateDto) throws IOException {
+        EntryResponseDto entryResponseDto = entryService.createGroupExpenseWithAllocations(groupExpenseCreateDto);
+
+        return new ResponseEntity<>(entryResponseDto, HttpStatus.CREATED);
+    }
+
     @DeleteMapping("{id}")
     public ResponseEntity<String> deleteExpense(@PathVariable("id") UUID entryId) throws IOException {
         entryService.deleteEntry(entryId);

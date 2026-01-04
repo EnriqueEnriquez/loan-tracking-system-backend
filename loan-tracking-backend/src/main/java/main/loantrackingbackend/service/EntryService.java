@@ -29,4 +29,5 @@ public interface EntryService {
     InstallmentResponseDto createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException;
 
     GroupExpenseResponseDto createGroupExpense(GroupExpenseCreateDto geCreateDto) throws IOException;
+    GroupExpenseResponseDto createGroupExpenseWithAllocations(GroupExpenseCreateDto groupExpenseCreateDto) throws IOException;
 }

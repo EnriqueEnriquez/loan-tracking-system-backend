@@ -6,10 +6,12 @@ import main.loantrackingbackend.entity.*;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.repository.EntryRepository;
+import main.loantrackingbackend.repository.GroupMemberRepository;
 import main.loantrackingbackend.repository.GroupRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.EntryService;
 import main.loantrackingbackend.service.ImageProofService;
+import main.loantrackingbackend.service.PaymentAllocationService;
 import main.loantrackingbackend.service.PaymentService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +32,8 @@ public class EntryServiceImpl implements EntryService {
     private ImageProofService imageProofService;
     private PaymentService paymentService;
     private final GroupRepository groupRepository;
+    private PaymentAllocationService paymentAllocationService;
+    private GroupMemberRepository groupMemberRepository;
 
     @Override
     public Map<String, List<EntryResponseDto>> getAllEntriesGrouped() {
@@ -242,6 +246,40 @@ public class EntryServiceImpl implements EntryService {
 
         return EntryMapper.mapToGroupExpenseResponseDto(savedExpense);
     }
+
+    public GroupExpenseResponseDto createGroupExpenseWithAllocations(GroupExpenseCreateDto geCreateDto) throws IOException {
+        GroupExpense groupExpense = EntryMapper.mapToGroupExpense(geCreateDto);
+
+        Person lender = personRepository.findById(geCreateDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+        groupExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
+        groupExpense.setPersonLender(lender);
+
+        Group borrower = groupRepository.findById(geCreateDto.getBorrowerGroupId())
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+        groupExpense.setGroupBorrower(borrower);
+        groupExpense.setBorrowerName(borrower.getGroupName());
+
+        groupExpense.setAmountRemaining(groupExpense.getAmountBorrowed());
+
+        GroupExpense savedExpense = entryRepository.save(groupExpense);
+
+        List<ImageProof> imageProofs = imageProofService.saveImageFilesList(savedExpense, geCreateDto.getImageFiles());
+        if (!imageProofs.isEmpty()) {
+            savedExpense.getImageProofFiles().addAll(imageProofs);
+        }
+
+        savedExpense.setReferenceId(getReferenceId(savedExpense));
+        savedExpense = entryRepository.save(savedExpense);
+
+        for (PaymentAllocationCreateDto allocationDto : geCreateDto.getPaymentAllocations()) {
+            allocationDto.setGroupExpenseEntryId(savedExpense.getId()); // set the saved expense ID
+            paymentAllocationService.createPaymentAllocation(allocationDto);
+        }
+
+        return EntryMapper.mapToGroupExpenseResponseDto(savedExpense);
+    }
+
 
 
     public static String getReferenceId(Entry entry) {
