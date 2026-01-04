@@ -14,12 +14,14 @@ public class EntryUpdateDto {
     private LocalDate dateBorrowed;
     private Long lenderId;
     private String notes;
-
-    private Long personBorrowerId; // Used for Straight/Installment
-    private Long groupBorrowerId;
-
     private List<MultipartFile> imageFiles;
     private List<Long> deletedImageIds;
+
+    private Long personBorrowerId; // Used for Straight/Installment
+
+    // For group expense only
+    private Long groupBorrowerId;
+    private List<PaymentAllocationCreateDto> paymentAllocations;
 
 }
 

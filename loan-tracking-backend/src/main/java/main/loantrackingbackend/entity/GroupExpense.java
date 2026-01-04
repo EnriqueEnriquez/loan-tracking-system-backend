@@ -22,4 +22,14 @@ public class GroupExpense extends Entry {
 
     @OneToMany(mappedBy = "groupExpense", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentAllocation> paymentAllocations = new ArrayList<>();
+
+    public void addPaymentAllocation(PaymentAllocation allocation) {
+        paymentAllocations.add(allocation);
+        allocation.setGroupExpense(this);
+    }
+
+    public void removePaymentAllocation(PaymentAllocation allocation) {
+        paymentAllocations.remove(allocation);
+        allocation.setGroupExpense(null);
+    }
 }

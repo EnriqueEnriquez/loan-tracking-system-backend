@@ -5,6 +5,7 @@ import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.*;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
+import main.loantrackingbackend.mapper.PaymentAllocationMapper;
 import main.loantrackingbackend.repository.EntryRepository;
 import main.loantrackingbackend.repository.GroupMemberRepository;
 import main.loantrackingbackend.repository.GroupRepository;
@@ -88,8 +89,9 @@ public class EntryServiceImpl implements EntryService {
             entryRepository.save(installmentEntry);
             return EntryMapper.mapToInstallmentResponseDto(installmentEntry);
         } else if (entry instanceof GroupExpense groupExpenseEntry) {
-            //handleGroupExpense
-            return null;
+            GroupExpense groupExpense = handleGroupExpenseUpdate(groupExpenseEntry, updateDto);
+            entryRepository.save(groupExpense);
+            return EntryMapper.mapToGroupExpenseResponseDto(groupExpense);
         }
 
         throw new IllegalArgumentException("Unknown Entry Type");
@@ -136,6 +138,7 @@ public class EntryServiceImpl implements EntryService {
                     .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
             entry.setPersonBorrower(personBorrower);
         }
+        entry.setReferenceId(getReferenceId(entry));
     }
 
     private void handleInstallmentExpenseUpdate(InstallmentExpense entry, EntryUpdateDto updateDto) {
@@ -144,7 +147,37 @@ public class EntryServiceImpl implements EntryService {
                     .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
             entry.setPersonBorrower(personBorrower);
         }
+        entry.setReferenceId(getReferenceId(entry));
+    }
 
+    private GroupExpense handleGroupExpenseUpdate(GroupExpense entry, EntryUpdateDto updateDto) throws IOException {
+        if(updateDto.getGroupBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+            Group groupBorrower = groupRepository.findById(updateDto.getGroupBorrowerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + updateDto.getGroupBorrowerId()));
+            entry.setGroupBorrower(groupBorrower);
+
+        }
+        entry.setReferenceId(getReferenceId(entry));
+
+        entry = entryRepository.save(entry);
+
+        paymentAllocationService.deletePaymentAllocationById(entry.getId());
+
+        if (updateDto.getPaymentAllocations() != null) {
+            for (PaymentAllocationCreateDto allocationDto : updateDto.getPaymentAllocations()) {
+
+                GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(
+                        entry.getGroupBorrower().getGroupId(),
+                        allocationDto.getGroupMemberPersonId()
+                );
+
+                PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(allocationDto, entry, member);
+
+                entry.addPaymentAllocation(allocation);
+            }
+        }
+
+        return entry;
     }
 
     @Override
@@ -252,8 +285,8 @@ public class EntryServiceImpl implements EntryService {
 
         Person lender = personRepository.findById(geCreateDto.getLenderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
-        groupExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
         groupExpense.setPersonLender(lender);
+        groupExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
 
         Group borrower = groupRepository.findById(geCreateDto.getBorrowerGroupId())
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
@@ -270,12 +303,22 @@ public class EntryServiceImpl implements EntryService {
         }
 
         savedExpense.setReferenceId(getReferenceId(savedExpense));
-        savedExpense = entryRepository.save(savedExpense);
 
-        for (PaymentAllocationCreateDto allocationDto : geCreateDto.getPaymentAllocations()) {
-            allocationDto.setGroupExpenseEntryId(savedExpense.getId()); // set the saved expense ID
-            paymentAllocationService.createPaymentAllocation(allocationDto);
+        if (geCreateDto.getPaymentAllocations() != null) {
+            for (PaymentAllocationCreateDto allocationDto : geCreateDto.getPaymentAllocations()) {
+
+                GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(
+                        savedExpense.getGroupBorrower().getGroupId(),
+                        allocationDto.getGroupMemberPersonId()
+                );
+
+                PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(allocationDto, savedExpense, member);
+
+                savedExpense.addPaymentAllocation(allocation);
+            }
         }
+
+        savedExpense = entryRepository.save(savedExpense);
 
         return EntryMapper.mapToGroupExpenseResponseDto(savedExpense);
     }

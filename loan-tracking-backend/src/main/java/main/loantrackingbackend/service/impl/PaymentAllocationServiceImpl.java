@@ -36,6 +36,7 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
         PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(dto, groupExpense, member);
         PaymentAllocation savedAllocation = paymentAllocationRepository.save(allocation);
 
+        groupExpense.getPaymentAllocations().add(savedAllocation);
         return PaymentAllocationMapper.mapToPaymentAllocationResponseDto(savedAllocation);
     }
 

@@ -15,6 +15,7 @@ public class EntryMapper {
         target.setDateBorrowed(source.getDateBorrowed());
         target.setDateFullyPaid(source.getDateFullyPaid());
         target.setBorrowerName(source.getBorrowerName());
+        target.setLenderId(source.getPersonLender().getPersonId());
         target.setLenderName(source.getLenderName());
         target.setAmountBorrowed(source.getAmountBorrowed());
         target.setAmountRemaining(source.getAmountRemaining());
