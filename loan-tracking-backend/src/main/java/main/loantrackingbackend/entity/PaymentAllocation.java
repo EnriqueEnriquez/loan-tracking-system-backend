@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "payment_allocation")
 public class PaymentAllocation {
 
     @Id
@@ -39,15 +40,9 @@ public class PaymentAllocation {
     private PaymentAllocationStatus paymentAllocationStatus = PaymentAllocationStatus.UNPAID;
 
     @ManyToOne
-    @JoinColumn(name = "groupExpense")
+    @JoinColumn(name = "groupExpense", nullable = false)
     private GroupExpense groupExpense;
 
-    public boolean isPaid() {
-        return paymentAllocationStatus == PaymentAllocationStatus.PAID;
-    }
-
-    public boolean isEditable() {
-        return paymentAllocationStatus == PaymentAllocationStatus.UNPAID;
-    }
-
+    public boolean isPaid() { return paymentAllocationStatus == PaymentAllocationStatus.PAID;}
+    public boolean isEditable() { return paymentAllocationStatus == PaymentAllocationStatus.UNPAID;}
 }

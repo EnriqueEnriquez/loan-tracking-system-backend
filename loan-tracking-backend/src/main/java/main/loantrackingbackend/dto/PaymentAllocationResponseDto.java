@@ -13,8 +13,8 @@ public class PaymentAllocationResponseDto {
     private String description;
     private Long groupMemberPersonId;
     private Long borrowerGroupId;
-    private PersonDto payeeDto;
+    private PersonDto groupMemberDto;
     private BigDecimal amount;
     private BigDecimal percent;
-    private UUID entryId;
+    private UUID groupExpenseEntryId;
 }

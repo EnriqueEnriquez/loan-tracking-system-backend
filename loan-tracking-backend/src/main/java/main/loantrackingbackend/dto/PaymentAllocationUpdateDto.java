@@ -13,5 +13,5 @@ public class PaymentAllocationUpdateDto {
     private Long groupMemberPersonId;
     private BigDecimal amount;
     private BigDecimal percent;
-    private UUID entryId;
+    private UUID groupExpenseEntryId;
 }

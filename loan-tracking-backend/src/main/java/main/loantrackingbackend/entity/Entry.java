@@ -36,7 +36,6 @@ public class Entry {
     @Enumerated(EnumType.STRING)
     private TransactionType transactionType;
 
-
     private LocalDate dateBorrowed;
     private LocalDate dateFullyPaid;
 

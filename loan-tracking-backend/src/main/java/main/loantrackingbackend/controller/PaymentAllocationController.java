@@ -1,4 +1,4 @@
-/**package main.loantrackingbackend.controller;
+package main.loantrackingbackend.controller;
 
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentAllocationCreateDto;
@@ -13,77 +13,55 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/group-expense/payment-allocations")
+@RequestMapping("/api/entry")
 @AllArgsConstructor
 public class PaymentAllocationController {
 
     private final PaymentAllocationService paymentAllocationService;
 
-    // Create a new payment allocation
-    @PostMapping
-    public ResponseEntity<PaymentAllocationResponseDto> createPaymentAllocation(
-            @RequestBody PaymentAllocationCreateDto dto
-    ) throws IOException {
+    @PostMapping("/{entryId}/payment-allocations")
+    public ResponseEntity<PaymentAllocationResponseDto> createPaymentAllocation(@PathVariable UUID entryId, @RequestBody PaymentAllocationCreateDto dto) throws IOException {
+        dto.setGroupExpenseEntryId(entryId);
         PaymentAllocationResponseDto response = paymentAllocationService.createPaymentAllocation(dto);
+
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    // Get payment allocation by ID
-    @GetMapping("/{id}")
-    public ResponseEntity<PaymentAllocationResponseDto> getPaymentAllocationById(
-            @PathVariable("id") Long id
-    ) {
-        PaymentAllocationResponseDto response = paymentAllocationService.getPaymentAllocationById(id);
-        return ResponseEntity.ok(response);
+    @GetMapping("/payment-allocations/{allocationId}")
+    public ResponseEntity<PaymentAllocationResponseDto> getPaymentAllocationById(@PathVariable Long allocationId) {
+        return ResponseEntity.ok(paymentAllocationService.getPaymentAllocationByAllocationId(allocationId));
     }
 
-    // Get all allocations for a specific group member
-    @GetMapping("/member/{groupMemberPersonId}")
-    public ResponseEntity<List<PaymentAllocationResponseDto>> getAllocationsByMember(
-            @PathVariable("groupMemberPersonId") Long groupMemberPersonId
-    ) {
-        List<PaymentAllocationResponseDto> responses = paymentAllocationService.getPaymentAllocationsByPayee(groupMemberPersonId);
-        return ResponseEntity.ok(responses);
+    @GetMapping("/{entryId}/payment-allocations")
+    public ResponseEntity<List<PaymentAllocationResponseDto>> getAllocationsByEntry(@PathVariable UUID entryId) {
+        return ResponseEntity.ok(paymentAllocationService.getPaymentAllocationById(entryId));
     }
 
-    // Get all allocations for a specific group expense
-    @GetMapping("/entry/{entryId}")
-    public ResponseEntity<List<PaymentAllocationResponseDto>> getAllocationsByEntry(
-            @PathVariable("entryId") UUID entryId
-    ) {
-        List<PaymentAllocationResponseDto> responses = paymentAllocationService.getPaymentAllocationsByEntry(entryId);
-        return ResponseEntity.ok(responses);
+    @GetMapping("/payment-allocations/member/{groupMemberPersonId}")
+    public ResponseEntity<List<PaymentAllocationResponseDto>> getAllocationsByMember(@PathVariable Long groupMemberPersonId) {
+        return ResponseEntity.ok(paymentAllocationService.getPaymentAllocationByGroupMember(groupMemberPersonId));
     }
 
-    // Get all payment allocations
-    @GetMapping
+    @GetMapping("/payment-allocations")
     public ResponseEntity<List<PaymentAllocationResponseDto>> getAllAllocations() {
-        List<PaymentAllocationResponseDto> responses = paymentAllocationService.getAllPayments();
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(paymentAllocationService.getAllPaymentAllocations());
     }
 
-    // Delete all allocations
-    @DeleteMapping
+    @DeleteMapping("/payment-allocations")
     public ResponseEntity<Void> deleteAllAllocations() {
         paymentAllocationService.deleteAllPaymentAllocations();
         return ResponseEntity.noContent().build();
     }
 
-    // Delete allocations by group member
-    @DeleteMapping("/member/{groupMemberPersonId}")
-    public ResponseEntity<Void> deleteAllocationsByMember(
-            @PathVariable("groupMemberPersonId") Long groupMemberPersonId
-    ) {
-        paymentAllocationService.deletePaymentAllocationsByGroupMember(groupMemberPersonId);
+    @DeleteMapping("/payment-allocations/member/{groupMemberPersonId}")
+    public ResponseEntity<Void> deleteAllocationsByMember(@PathVariable Long groupMemberPersonId) {
+        paymentAllocationService.deletePaymentAllocationByGroupMember(groupMemberPersonId);
         return ResponseEntity.noContent().build();
     }
 
-    // Delete allocations by group expense
-    @DeleteMapping("/entry/{entryId}")
-    public ResponseEntity<Void> deleteAllocationsByEntry(
-            @PathVariable("entryId") UUID entryId
-    ) {
-        paymentAllocationService.deletePaymentAllocationsByEntry(entryId);
+    @DeleteMapping("/{entryId}/payment-allocations")
+    public ResponseEntity<Void> deleteAllocationsByEntry(@PathVariable UUID entryId) {
+        paymentAllocationService.deletePaymentAllocationById(entryId);
         return ResponseEntity.noContent().build();
     }
-}*/
+}

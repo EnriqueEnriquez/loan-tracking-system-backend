@@ -20,7 +20,7 @@ public class PaymentAllocationMapper {
         PaymentAllocationResponseDto dto = new PaymentAllocationResponseDto();
 
         dto.setAllocationId(allocation.getAllocationId());
-        dto.setEntryId(allocation.getGroupExpense() != null ? allocation.getGroupExpense().getId() : null);
+        dto.setGroupExpenseEntryId(allocation.getGroupExpense() != null ? allocation.getGroupExpense().getId() : null);
         dto.setGroupMemberPersonId(allocation.getGroupMember() != null ? allocation.getGroupMember().getPerson().getPersonId() : null);
         dto.setAmount(allocation.getAmount());
         dto.setDescription(allocation.getDescription());

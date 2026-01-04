@@ -1,6 +1,5 @@
 package main.loantrackingbackend.service.impl;
 
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentAllocationCreateDto;
 import main.loantrackingbackend.dto.PaymentAllocationResponseDto;
@@ -16,14 +15,11 @@ import main.loantrackingbackend.repository.PaymentAllocationRepository;
 import main.loantrackingbackend.service.PaymentAllocationService;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-/**
+
 @Service
 @AllArgsConstructor
-@Transactional
 public class PaymentAllocationServiceImpl implements PaymentAllocationService {
 
     private final PaymentAllocationRepository paymentAllocationRepository;
@@ -31,11 +27,9 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
     private final GroupMemberRepository groupMemberRepository;
 
     @Override
-    public PaymentAllocationResponseDto createPaymentAllocation(PaymentAllocationCreateDto dto) throws IOException {
-        GroupExpense groupExpense = (GroupExpense) entryRepository.findById(dto.getEntryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
-
-        GroupMember member = (GroupMember) groupMemberRepository.findById(dto.getGroupMemberPersonId());
+    public PaymentAllocationResponseDto createPaymentAllocation(PaymentAllocationCreateDto dto) {
+        GroupExpense groupExpense = entryRepository.findGEById(dto.getGroupExpenseEntryId());
+        GroupMember member = groupMemberRepository.findById(dto.getGroupMemberPersonId());
 
         PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(dto, groupExpense, member);
         PaymentAllocation savedAllocation = paymentAllocationRepository.save(allocation);
@@ -44,27 +38,41 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
     }
 
     @Override
-    public PaymentAllocationResponseDto getPaymentAllocationById(Long paymentAllocationId) {
-        PaymentAllocation allocation = paymentAllocationRepository.findById(paymentAllocationId)
+    public PaymentAllocationResponseDto getPaymentAllocationByAllocationId(Long allocationId) {
+        PaymentAllocation allocation = paymentAllocationRepository.findById(allocationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment Allocation not found"));
 
         return PaymentAllocationMapper.mapToPaymentAllocationResponseDto(allocation);
     }
 
     @Override
-    public List<PaymentAllocationResponseDto> getPaymentAllocationsByPayee(Long groupMemberPersonId) {
-        List<PaymentAllocation> allocations = paymentAllocationRepository.findByGroupMember_PersonId(groupMemberPersonId);
-        return PaymentAllocationMapper.mapToResponseList(allocations);
+    public List<PaymentAllocationResponseDto> getPaymentAllocationByGroupMember(Long groupMemberPersonId) {
+
+        GroupMember member = groupMemberRepository.findById(groupMemberPersonId);
+
+        return PaymentAllocationMapper.mapToResponseList(
+                paymentAllocationRepository.findByGroupMember(member)
+        );
     }
 
     @Override
-    public List<PaymentAllocationResponseDto> getPaymentAllocationsByEntry(UUID entryId) {
-        List<PaymentAllocation> allocations = paymentAllocationRepository.findByGroupExpense_Id(entryId);
-        return PaymentAllocationMapper.mapToResponseList(allocations);
+    public List<PaymentAllocationResponseDto> getPaymentAllocationById(UUID id) {
+        Entry entry = entryRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Entry not found")
+                );
+
+        if (!(entry instanceof GroupExpense groupExpense)) {
+            throw new IllegalStateException("Entry is not a Group Expense");
+        }
+
+        return PaymentAllocationMapper.mapToResponseList(
+                paymentAllocationRepository.findByGroupExpense(groupExpense)
+        );
     }
 
     @Override
-    public List<PaymentAllocationResponseDto> getAllPayments() {
+    public List<PaymentAllocationResponseDto> getAllPaymentAllocations() {
         List<PaymentAllocation> allocations = paymentAllocationRepository.findAll();
         return PaymentAllocationMapper.mapToResponseList(allocations);
     }
@@ -75,14 +83,22 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
     }
 
     @Override
-    public void deletePaymentAllocationsByGroupMember(Long groupMemberPersonId) {
-        List<PaymentAllocation> allocations = paymentAllocationRepository.findByGroupMember_PersonId(groupMemberPersonId);
-        paymentAllocationRepository.deleteAll(allocations);
+    public void deletePaymentAllocationByGroupMember(Long groupMemberPersonId) {
+        GroupMember member = groupMemberRepository.findById(groupMemberPersonId);
+
+        paymentAllocationRepository.deleteAll(paymentAllocationRepository.findByGroupMember(member));
     }
 
     @Override
-    public void deletePaymentAllocationsByEntry(UUID entryId) {
-        List<PaymentAllocation> allocations = paymentAllocationRepository.findByGroupExpense_Id(entryId);
-        paymentAllocationRepository.deleteAll(allocations);
+    public void deletePaymentAllocationById(UUID entryId) {
+        Entry entry = entryRepository.findEntryById(entryId);
+
+        if (!(entry instanceof GroupExpense groupExpense)) {
+            throw new IllegalStateException("Entry is not a Group Expense");
+        }
+
+        paymentAllocationRepository.deleteAll(
+                paymentAllocationRepository.findByGroupExpense(groupExpense)
+        );
     }
-}*/
+}
