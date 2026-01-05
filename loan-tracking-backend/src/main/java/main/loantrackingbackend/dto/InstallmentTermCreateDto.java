@@ -13,4 +13,5 @@ public class InstallmentTermCreateDto {
     private int termNumber;
     private LocalDate dueDate;
     private UUID installmentExpenseEntryId;
+    private boolean skipped;
 }

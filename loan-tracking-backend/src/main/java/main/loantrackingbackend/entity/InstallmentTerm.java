@@ -30,12 +30,16 @@ public class InstallmentTerm {
     private LocalDate dueDate;
 
     private String notes;
+    private boolean skipped;
 
     @ManyToOne
     @JoinColumn(name = "entry_id")
     private InstallmentExpense installmentExpense;
 
-    public InstallmentStatus getInstallmentStatus(boolean skipped) {
+    @OneToOne @JoinColumn(name = "term_id")
+    private Payment payment;
+
+    public InstallmentStatus getInstallmentStatus() {
         BigDecimal termAmount = installmentExpense.getPaymentAmountPerTerm();
         BigDecimal paid = getAmountPaid();
 

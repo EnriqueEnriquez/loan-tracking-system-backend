@@ -22,4 +22,5 @@ public class PaymentResponseDto {
     private String notes;
     private List<String> imageUrls;
     private UUID entryId;
+    private Long termId;    // to track term iff installment expense
 }

@@ -2,6 +2,7 @@ package main.loantrackingbackend.mapper;
 
 import main.loantrackingbackend.dto.PaymentCreateDto;
 import main.loantrackingbackend.dto.PaymentResponseDto;
+import main.loantrackingbackend.entity.InstallmentExpense;
 import main.loantrackingbackend.entity.PaymentProof;
 import main.loantrackingbackend.entity.Payment;
 
@@ -34,6 +35,10 @@ public class PaymentMapper {
                             .map(PaymentProof::getImageUrl)
                             .collect(Collectors.toList())
             );
+        }
+
+        if (payment.getEntry() instanceof InstallmentExpense) {
+            dto.setTermId(payment.getInstallmentTerm().getTermId());
         }
 
         dto.setEntryId(payment.getEntry().getId());

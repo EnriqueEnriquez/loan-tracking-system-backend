@@ -42,4 +42,7 @@ public class Payment{
     @ManyToOne
     @JoinColumn(name = "entry_id", nullable = false)
     private Entry entry;
+
+    @OneToOne @JoinColumn(name = "term_id")
+    private InstallmentTerm installmentTerm;
 }

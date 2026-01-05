@@ -2,6 +2,7 @@ package main.loantrackingbackend.dto;
 
 import lombok.Getter;
 import lombok.Setter;
+import main.loantrackingbackend.entity.Payment;
 import main.loantrackingbackend.enums.InstallmentStatus;
 
 import java.math.BigDecimal;
@@ -16,4 +17,5 @@ public class InstallmentTermResponseDto {
     private LocalDate dueDate;
     private InstallmentStatus installmentStatus;
     private UUID installmentExpenseEntryId;
+    private boolean skipped;
 }

@@ -24,18 +24,15 @@ public class InstallmentTermController {
     private final EntryRepository entryRepository;
 
     @GetMapping("/{termId}/status")
-    public ResponseEntity<InstallmentStatus> getTermStatus(
-            @PathVariable Long termId,
-            @RequestParam(defaultValue = "false") boolean skipped
-    ) {
+    public ResponseEntity<InstallmentStatus> getTermStatus(@PathVariable Long termId) {
         InstallmentTerm term = termRepository.findById(termId)
                 .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
 
-        return ResponseEntity.ok(term.getInstallmentStatus(skipped));
+        return ResponseEntity.ok(term.getInstallmentStatus());
     }
 
     @GetMapping("/view/{entryId}")
-    public ResponseEntity<List<TermStatusDto>> getAllTermsPerInstallmentExpense(@PathVariable UUID entryId, @RequestParam(required = false) List<Long> skippedTermIds) {
+    public ResponseEntity<List<TermStatusDto>> getTermsPerInstallmentExpense(@PathVariable UUID entryId) {
         Entry entry = entryRepository.findEntryById(entryId);
 
         if (!(entry instanceof InstallmentExpense expense)) {
@@ -45,14 +42,11 @@ public class InstallmentTermController {
         List<TermStatusDto> result = expense.getInstallmentTerms()
                 .stream()
                 .map(term -> {
-                    boolean skipped = skippedTermIds != null &&
-                            skippedTermIds.contains(term.getTermId());
-
                     return new TermStatusDto(
                             term.getTermId(),
                             term.getTermNumber(),
                             term.getDueDate(),
-                            term.getInstallmentStatus(skipped)
+                            term.getInstallmentStatus()
                     );
                 })
                 .collect(Collectors.toList());
@@ -65,12 +59,14 @@ public class InstallmentTermController {
         InstallmentTerm term = termRepository.findById(termId)
                 .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
 
-        return ResponseEntity.ok(term.getInstallmentStatus(true));
+        term.setSkipped(true);
+        return ResponseEntity.ok(term.getInstallmentStatus());
     }
 
     public record TermStatusDto(
             Long termId,
             int termNumber,
-            java.time.LocalDate dueDate, InstallmentStatus status
+            java.time.LocalDate dueDate,
+            InstallmentStatus status
     ) {}
 }
