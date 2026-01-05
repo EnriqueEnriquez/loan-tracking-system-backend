@@ -22,4 +22,5 @@ public class PaymentCreateDto {
     private String notes;
     private List<MultipartFile> imageFiles;
     private UUID entryId;
+    private Long termId;    // to track term iff installment expense
 }
