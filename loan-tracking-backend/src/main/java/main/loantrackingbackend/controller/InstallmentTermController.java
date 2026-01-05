@@ -34,9 +34,9 @@ public class InstallmentTermController {
         return ResponseEntity.ok(term.getInstallmentStatus(skipped));
     }
 
-    @GetMapping("/expense/{expenseId}/status")
-    public ResponseEntity<List<TermStatusDto>> getAllTermStatus(@PathVariable UUID expenseId, @RequestParam(required = false) List<Long> skippedTermIds) {
-        Entry entry = entryRepository.findEntryById(expenseId);
+    @GetMapping("/view/{entryId}")
+    public ResponseEntity<List<TermStatusDto>> getAllTermsPerInstallmentExpense(@PathVariable UUID entryId, @RequestParam(required = false) List<Long> skippedTermIds) {
+        Entry entry = entryRepository.findEntryById(entryId);
 
         if (!(entry instanceof InstallmentExpense expense)) {
             throw new IllegalStateException("Entry is not an installment expense");
@@ -51,6 +51,7 @@ public class InstallmentTermController {
                     return new TermStatusDto(
                             term.getTermId(),
                             term.getTermNumber(),
+                            term.getDueDate(),
                             term.getInstallmentStatus(skipped)
                     );
                 })
@@ -70,6 +71,6 @@ public class InstallmentTermController {
     public record TermStatusDto(
             Long termId,
             int termNumber,
-            InstallmentStatus status
+            java.time.LocalDate dueDate, InstallmentStatus status
     ) {}
 }
