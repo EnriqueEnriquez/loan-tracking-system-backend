@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface InstallmentTermService {
     List<InstallmentTerm> createInstallmentTermsList (InstallmentExpense installmentExpense);
-
+    InstallmentTerm skipTermAndCreateNew(Long termId);
     void deleteInstallmentTermsList(InstallmentExpense installmentExpense);
 }

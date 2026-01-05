@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface InstallmentTermRepository extends JpaRepository<InstallmentTerm, Long> {
 
     void deleteByInstallmentExpense(InstallmentExpense installmentExpense);
+    InstallmentTerm findTopByInstallmentExpenseOrderByTermNumberDesc(InstallmentExpense installmentExpense);
 }

@@ -8,6 +8,7 @@ import main.loantrackingbackend.enums.InstallmentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.repository.EntryRepository;
 import main.loantrackingbackend.repository.InstallmentTermRepository;
+import main.loantrackingbackend.service.InstallmentTermService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,17 +25,24 @@ public class InstallmentTermController {
 
     private final InstallmentTermRepository termRepository;
     private final EntryRepository entryRepository;
+    private final InstallmentTermService installmentTermService;
 
-    @GetMapping("/{termId}/status")
-    public ResponseEntity<InstallmentStatus> getTermStatus(@PathVariable Long termId) {
+    @GetMapping("/{termId}")
+    public ResponseEntity<TermResponseDto> getTerm(@PathVariable Long termId) {
         InstallmentTerm term = termRepository.findById(termId)
                 .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
 
-        return ResponseEntity.ok(term.getInstallmentStatus());
+        TermResponseDto dto = new TermResponseDto(
+                term.getTermId(),
+                term.getTermNumber(),
+                term.getDueDate(),
+                term.getInstallmentStatus()
+        );
+        return ResponseEntity.ok(dto);
     }
 
     @GetMapping("/view/{entryId}")
-    public ResponseEntity<List<TermStatusDto>> getTermsPerInstallmentExpense(@PathVariable UUID entryId) {
+    public ResponseEntity<List<TermResponseDto>> getTermsPerInstallmentExpense(@PathVariable UUID entryId) {
         Entry entry = entryRepository.findEntryById(entryId);
 
         if (entry == null) {
@@ -49,9 +57,9 @@ public class InstallmentTermController {
                 ? expense.getInstallmentTerms()
                 : Collections.emptyList();
 
-        List<TermStatusDto> result = terms.stream()
+        List<TermResponseDto> result = terms.stream()
                 .sorted(Comparator.comparingInt(InstallmentTerm::getTermNumber))
-                .map(term -> new TermStatusDto(
+                .map(term -> new TermResponseDto(
                         term.getTermId(),
                         term.getTermNumber(),
                         term.getDueDate(),
@@ -63,16 +71,12 @@ public class InstallmentTermController {
     }
 
     @PostMapping("/skip/{termId}")
-    public ResponseEntity<InstallmentStatus> skipTerm(@PathVariable Long termId) {
-        InstallmentTerm term = termRepository.findById(termId)
-                .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
-
-        term.setSkipped(true);
-        termRepository.save(term);
-        return ResponseEntity.ok(term.getInstallmentStatus());
+    public ResponseEntity<InstallmentTerm> skipTerm(@PathVariable Long termId) {
+        InstallmentTerm newTerm = installmentTermService.skipTermAndCreateNew(termId);
+        return ResponseEntity.ok(newTerm);
     }
 
-    public record TermStatusDto(
+    public record TermResponseDto(
             Long termId,
             int termNumber,
             java.time.LocalDate dueDate,

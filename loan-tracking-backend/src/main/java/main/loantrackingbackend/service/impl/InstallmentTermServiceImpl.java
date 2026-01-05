@@ -46,4 +46,37 @@ public class InstallmentTermServiceImpl implements InstallmentTermService {
     public void deleteInstallmentTermsList(InstallmentExpense installmentExpense) {
         installmentTermRepository.deleteByInstallmentExpense(installmentExpense);
     }
+
+    @Override
+    public InstallmentTerm skipTermAndCreateNew(Long termId) {
+        InstallmentTerm skippedTerm = installmentTermRepository.findById(termId)
+                .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
+
+        if (skippedTerm.isSkipped()) {
+            throw new IllegalStateException("Term is already skipped");
+        }
+
+        skippedTerm.setSkipped(true);
+        installmentTermRepository.save(skippedTerm);
+
+        InstallmentExpense expense = skippedTerm.getInstallmentExpense();
+
+        InstallmentTerm lastTerm = installmentTermRepository
+                .findTopByInstallmentExpenseOrderByTermNumberDesc(expense);
+
+        InstallmentTerm newTerm = new InstallmentTerm();
+        newTerm.setInstallmentExpense(expense);
+        newTerm.setTermNumber(lastTerm.getTermNumber() + 1);
+
+        LocalDate newDueDate;
+        switch (expense.getPaymentFrequency()) {
+            case MONTHLY -> newDueDate = lastTerm.getDueDate().plusMonths(1);
+            case WEEKLY  -> newDueDate = lastTerm.getDueDate().plusWeeks(1);
+            default -> throw new IllegalStateException("Unsupported frequency");
+        }
+
+        newTerm.setDueDate(newDueDate);
+
+        return installmentTermRepository.save(newTerm);
+    }
 }
