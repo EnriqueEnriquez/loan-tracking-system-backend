@@ -48,6 +48,9 @@ public class GroupMemberImpl implements GroupMemberService {
 
         GroupMember savedGroupMember = groupMemberRepository.save(member);
 
+        person.getGroupMembers().add(savedGroupMember);
+        personRepository.save(person);
+
         return GroupMemberMapper.mapToGroupMemberDto(savedGroupMember);
     }
 

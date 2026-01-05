@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -20,5 +23,12 @@ public class Group {
 
     @Column(name = "group_name", nullable = false)
     private String groupName;
+
+    @OneToMany(
+            mappedBy = "group",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<GroupMember> groupMembers = new ArrayList<>();
 }
 
