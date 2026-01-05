@@ -3,12 +3,14 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PersonDto;
 import main.loantrackingbackend.entity.Person;
+import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PersonMapper;
-import main.loantrackingbackend.repository.PersonRepository;
+import main.loantrackingbackend.repository.*;
 import main.loantrackingbackend.service.PersonService;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,6 +18,10 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class PersonServiceImpl implements PersonService {
 
+    private final PaymentAllocationRepository paymentAllocationRepository;
+    private StraightExpenseRepository straightExpenseRepository;
+    private InstallmentExpenseRepository installmentExpenseRepository;
+    private EntryRepository entryRepository;
     private PersonRepository personRepository;
 
     @Override
@@ -47,9 +53,29 @@ public class PersonServiceImpl implements PersonService {
         Person person = personRepository.findById(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Person does not exist with id: " + personId));
 
+        boolean isNameChanging = !person.getFirstName().equals(updatedPerson.getFirstName()) ||
+                !person.getLastName().equals(updatedPerson.getLastName());
+
+        if (isNameChanging) {
+            List<PaymentStatus> activeStatuses = Arrays.asList(
+                    PaymentStatus.UNPAID,
+                    PaymentStatus.PARTIALLY_PAID
+            );
+
+            boolean hasActiveDebt =
+                    entryRepository.existsByPersonLenderAndStatusIn(person, activeStatuses)
+                            || straightExpenseRepository.existsByPersonBorrowerAndStatusIn(person, activeStatuses)
+                            || installmentExpenseRepository.existsByPersonBorrowerAndStatusIn(person, activeStatuses)
+                            || paymentAllocationRepository.existsByPersonAndGroupExpenseStatus(person, activeStatuses);
+
+            if (hasActiveDebt) {
+                throw new IllegalStateException("Cannot update Name for person with id: " + personId + " because they have active financial records.");
+            }
+        }
+
         person.setFirstName(updatedPerson.getFirstName());
         person.setLastName(updatedPerson.getLastName());
-        person.setContact(updatedPerson.getContact());
+        person.setContact(updatedPerson.getContact()); // Always allow contact updates
 
         Person savedPerson = personRepository.save(person);
 
@@ -57,10 +83,25 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public void deletePerson(Long personId) {
+    public String deletePerson(Long personId) {
+
         Person person = personRepository.findById(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Person does not exist with id: " + personId));
 
+        List<PaymentStatus> activeStatuses = Arrays.asList(
+                PaymentStatus.UNPAID,
+                PaymentStatus.PARTIALLY_PAID
+        );
+
+        if (entryRepository.existsByPersonLenderAndStatusIn(person, activeStatuses)
+            || straightExpenseRepository.existsByPersonBorrowerAndStatusIn(person, activeStatuses)
+            || installmentExpenseRepository.existsByPersonBorrowerAndStatusIn(person, activeStatuses)
+            || paymentAllocationRepository.existsByPersonAndGroupExpenseStatus(person, activeStatuses)) {
+            return "Cannot delete person with id: " + personId + " because they are associated with active expense/s";
+        }
+
         personRepository.delete(person);
+
+        return "Person with id: " + personId + " was successfully deleted";
     }
 }
