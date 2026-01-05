@@ -55,10 +55,9 @@ public class InstallmentTerm {
         if (installmentExpense == null || installmentExpense.getPayments() == null)
             return BigDecimal.ZERO;
 
-        // Sum only the payments applied to this expense
+        // Sum only the payments applied to this term
         return installmentExpense.getPayments().stream()
-                .filter(payment -> payment.getPayee().getPersonId()
-                        .equals(installmentExpense.getPersonBorrower().getPersonId()))
+                .filter(payment -> payment.getInstallmentTerm().getTermId().equals(termId))
                 .map(Payment::getPaymentAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }

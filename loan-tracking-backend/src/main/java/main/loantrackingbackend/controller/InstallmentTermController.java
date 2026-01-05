@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,6 +50,7 @@ public class InstallmentTermController {
                 : Collections.emptyList();
 
         List<TermStatusDto> result = terms.stream()
+                .sorted(Comparator.comparingInt(InstallmentTerm::getTermNumber))
                 .map(term -> new TermStatusDto(
                         term.getTermId(),
                         term.getTermNumber(),
@@ -60,7 +62,7 @@ public class InstallmentTermController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/{termId}/skip")
+    @PostMapping("/skip/{termId}")
     public ResponseEntity<InstallmentStatus> skipTerm(@PathVariable Long termId) {
         InstallmentTerm term = termRepository.findById(termId)
                 .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));

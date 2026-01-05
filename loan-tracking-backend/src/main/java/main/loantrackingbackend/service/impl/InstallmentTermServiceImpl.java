@@ -27,8 +27,8 @@ public class InstallmentTermServiceImpl implements InstallmentTermService {
 
             LocalDate dueDate;
             switch (installmentExpense.getPaymentFrequency()) {
-                case MONTHLY -> dueDate = installmentExpense.getStartDate().plusMonths(termNumber - 1);
-                case WEEKLY  -> dueDate = installmentExpense.getStartDate().plusWeeks(termNumber - 1);
+                case MONTHLY -> dueDate = installmentExpense.getStartDate().plusMonths(termNumber);
+                case WEEKLY  -> dueDate = installmentExpense.getStartDate().plusWeeks(termNumber);
                 default -> throw new IllegalStateException(
                         "Unsupported payment frequency: " + installmentExpense.getPaymentFrequency()
                 );
