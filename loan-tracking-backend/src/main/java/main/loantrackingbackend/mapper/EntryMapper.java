@@ -98,10 +98,8 @@ public class EntryMapper {
         target.setDescription(source.getDescription());
         target.setTransactionType(source.getTransactionType());
         target.setDateBorrowed(source.getDateBorrowed());
-        target.setDateFullyPaid(source.getDateFullyPaid());
 
         target.setAmountBorrowed(source.getAmountBorrowed());
-        target.setAmountRemaining(source.getAmountRemaining());
         target.setNotes(source.getNotes());
     }
 

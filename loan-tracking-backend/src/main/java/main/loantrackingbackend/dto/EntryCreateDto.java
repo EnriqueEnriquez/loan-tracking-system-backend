@@ -23,10 +23,8 @@ public class EntryCreateDto {
     private String description;
     private TransactionType transactionType;
     private LocalDate dateBorrowed;
-    private LocalDate dateFullyPaid;
     private Long lenderId;
-    private BigDecimal amountBorrowed;
-    private BigDecimal amountRemaining;
+    private BigDecimal amountBorrowed; // amount remaining = amount borrowed in creation
     private String notes;
     private List<MultipartFile> imageFiles;
 }

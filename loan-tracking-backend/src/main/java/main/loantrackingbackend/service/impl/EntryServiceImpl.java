@@ -76,8 +76,7 @@ public class EntryServiceImpl implements EntryService {
 
         if (entry instanceof StraightExpense straightEntry) {
 
-            if (updateDto.getPersonBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty())
-                handleStraightExpenseUpdate(straightEntry, updateDto);
+            handleStraightExpenseUpdate(straightEntry, updateDto);
             entryRepository.save(straightEntry);
             return EntryMapper.mapToStraightResponseDto(straightEntry);
 
@@ -132,32 +131,45 @@ public class EntryServiceImpl implements EntryService {
     }
 
     private void handleStraightExpenseUpdate(StraightExpense entry, EntryUpdateDto updateDto) {
-        if (updateDto.getPersonBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+        if (paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
 
-            if (updateDto.getAmountBorrowed() != null) entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+            if (updateDto.getAmountBorrowed() != null) {
+                entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+                entry.setAmountRemaining(updateDto.getAmountBorrowed());
+                // amount remaining = amount borrowed when no payments yet
+            }
 
-            Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
-            entry.setPersonBorrower(personBorrower);
+            if (updateDto.getPersonBorrowerId() != null) {
+                Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
+                entry.setPersonBorrower(personBorrower);
+            }
         }
         entry.setReferenceId(getReferenceId(entry));
     }
 
     private void handleInstallmentExpenseUpdate(InstallmentExpense entry, EntryUpdateDto updateDto) {
-        if (updateDto.getPersonBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
-            if (updateDto.getAmountBorrowed() != null) entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+        if (paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+            if (updateDto.getAmountBorrowed() != null) {
+                entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+                entry.setAmountRemaining(updateDto.getAmountBorrowed());
+            }
 
-            Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
-            entry.setPersonBorrower(personBorrower);
+            if (updateDto.getPersonBorrowerId() != null) {
+                Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
+                entry.setPersonBorrower(personBorrower);
+            }
 
+            if (updateDto.getStartDate() != null) entry.setStartDate(updateDto.getStartDate());
             if (updateDto.getPaymentTerms() != 0) entry.setPaymentTerms(updateDto.getPaymentTerms());
             if (updateDto.getPaymentFrequency() != null) entry.setPaymentFrequency(updateDto.getPaymentFrequency());
             if (updateDto.getPaymentAmountPerTerm() != null) entry.setPaymentAmountPerTerm(updateDto.getPaymentAmountPerTerm());
 
-            installmentTermService.deleteInstallmentTermsList(entry);
-            List<InstallmentTerm> installmentTermList = installmentTermService.createInstallmentTermsList(entry);
-            entry.setInstallmentTerms(installmentTermList);
+
+            List<InstallmentTerm> newTermList = installmentTermService.createInstallmentTermsList(entry);
+            entry.getInstallmentTerms().clear();
+            entry.getInstallmentTerms().addAll(newTermList);
         }
         entry.setReferenceId(getReferenceId(entry));
 
@@ -165,7 +177,10 @@ public class EntryServiceImpl implements EntryService {
 
     private GroupExpense handleGroupExpenseUpdate(GroupExpense entry, EntryUpdateDto updateDto) throws IOException {
         if(updateDto.getGroupBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
-            if (updateDto.getAmountBorrowed() != null) entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+            if (updateDto.getAmountBorrowed() != null) {
+                entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+                entry.setAmountRemaining(updateDto.getAmountBorrowed());
+            }
 
             Group groupBorrower = groupRepository.findById(updateDto.getGroupBorrowerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + updateDto.getGroupBorrowerId()));
@@ -210,6 +225,8 @@ public class EntryServiceImpl implements EntryService {
 
         straightExpense.setBorrowerName(borrower.getFirstName() + " " + borrower.getLastName());
         straightExpense.setPersonBorrower(borrower);
+        straightExpense.setAmountRemaining(straightExpense.getAmountBorrowed());
+
         StraightExpense savedExpense = entryRepository.save(straightExpense);
 
         List<ImageProof> imageProofs= imageProofService.saveImageFilesList(savedExpense, seCreateDto.getImageFiles());
@@ -251,6 +268,8 @@ public class EntryServiceImpl implements EntryService {
 
         installmentExpense.setBorrowerName(borrower.getFirstName() + " " + borrower.getLastName());
         installmentExpense.setPersonBorrower(borrower);
+        installmentExpense.setAmountRemaining(installmentExpense.getAmountBorrowed());
+
         InstallmentExpense savedExpense = entryRepository.save(installmentExpense);
 
         List<ImageProof> imageProofs = imageProofService.saveImageFilesList(savedExpense, installmentCreateDto.getImageFiles());
@@ -262,7 +281,7 @@ public class EntryServiceImpl implements EntryService {
         savedExpense.setReferenceId(getReferenceId(savedExpense));
 
         List<InstallmentTerm> installmentTermsList = installmentTermService.createInstallmentTermsList(savedExpense);
-        savedExpense.setInstallmentTerms(installmentTermsList);
+        savedExpense.getInstallmentTerms().addAll(installmentTermsList);
 
         savedExpense = entryRepository.save(savedExpense);
 
