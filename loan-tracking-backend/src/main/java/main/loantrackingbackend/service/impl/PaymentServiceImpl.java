@@ -61,11 +61,12 @@ public class PaymentServiceImpl implements PaymentService {
 
         payment = paymentRepository.save(payment);
 
-        if (dto.getTermId() != null && entry instanceof InstallmentExpense expense) {
+        if (entry instanceof InstallmentExpense expense) {
             InstallmentTerm term = expense.getInstallmentTerms().stream()
                     .filter(t -> t.getTermId().equals(dto.getTermId()))
                     .findFirst()
                     .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
+            payment.setInstallmentTerm(term);
         }
 
         updatePaymentStatus(entry);

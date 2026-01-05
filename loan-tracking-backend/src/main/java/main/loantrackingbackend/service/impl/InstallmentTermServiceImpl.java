@@ -3,7 +3,7 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.entity.InstallmentExpense;
 import main.loantrackingbackend.entity.InstallmentTerm;
-import main.loantrackingbackend.enums.PaymentFrequency;
+import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.repository.InstallmentTermRepository;
 import main.loantrackingbackend.service.InstallmentTermService;
 import org.springframework.stereotype.Service;

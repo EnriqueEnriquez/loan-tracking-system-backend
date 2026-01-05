@@ -37,11 +37,11 @@ public class PaymentMapper {
             );
         }
 
+        dto.setEntryId(payment.getEntry().getId());
+
         if (payment.getEntry() instanceof InstallmentExpense) {
             dto.setTermId(payment.getInstallmentTerm().getTermId());
         }
-
-        dto.setEntryId(payment.getEntry().getId());
 
         return dto;
     }

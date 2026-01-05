@@ -11,6 +11,7 @@ import main.loantrackingbackend.repository.InstallmentTermRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,20 +36,25 @@ public class InstallmentTermController {
     public ResponseEntity<List<TermStatusDto>> getTermsPerInstallmentExpense(@PathVariable UUID entryId) {
         Entry entry = entryRepository.findEntryById(entryId);
 
+        if (entry == null) {
+            throw new ResourceNotFoundException("Entry not found");
+        }
+
         if (!(entry instanceof InstallmentExpense expense)) {
             throw new IllegalStateException("Entry is not an installment expense");
         }
 
-        List<TermStatusDto> result = expense.getInstallmentTerms()
-                .stream()
-                .map(term -> {
-                    return new TermStatusDto(
-                            term.getTermId(),
-                            term.getTermNumber(),
-                            term.getDueDate(),
-                            term.getInstallmentStatus()
-                    );
-                })
+        List<InstallmentTerm> terms = expense.getInstallmentTerms() != null
+                ? expense.getInstallmentTerms()
+                : Collections.emptyList();
+
+        List<TermStatusDto> result = terms.stream()
+                .map(term -> new TermStatusDto(
+                        term.getTermId(),
+                        term.getTermNumber(),
+                        term.getDueDate(),
+                        term.getInstallmentStatus()
+                ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(result);
@@ -60,6 +66,7 @@ public class InstallmentTermController {
                 .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
 
         term.setSkipped(true);
+        termRepository.save(term);
         return ResponseEntity.ok(term.getInstallmentStatus());
     }
 

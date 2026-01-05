@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import main.loantrackingbackend.enums.InstallmentStatus;
 import main.loantrackingbackend.util.TestDateManager;
+import org.springframework.cglib.core.Local;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -30,7 +31,7 @@ public class InstallmentTerm {
     private LocalDate dueDate;
 
     private String notes;
-    private boolean skipped;
+    private boolean skipped = false;
 
     @ManyToOne
     @JoinColumn(name = "entry_id")
@@ -43,8 +44,8 @@ public class InstallmentTerm {
         BigDecimal termAmount = installmentExpense.getPaymentAmountPerTerm();
         BigDecimal paid = getAmountPaid();
 
-        if(TestDateManager.today().isBefore(installmentExpense.getStartDate())) return InstallmentStatus.NOT_STARTED;
         if(skipped) return InstallmentStatus.SKIPPED;
+        if(TestDateManager.today().isBefore(getTermStart())) return InstallmentStatus.NOT_STARTED;
         if(paid.compareTo(termAmount) >= 0) return InstallmentStatus.PAID;
         if(TestDateManager.today().isAfter(dueDate)) return InstallmentStatus.DELINQUENT;
         return InstallmentStatus.UNPAID;
@@ -60,5 +61,17 @@ public class InstallmentTerm {
                         .equals(installmentExpense.getPersonBorrower().getPersonId()))
                 .map(Payment::getPaymentAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public LocalDate getTermStart(){
+        LocalDate termStart;
+        switch (installmentExpense.getPaymentFrequency()) {
+            case MONTHLY -> termStart = installmentExpense.getStartDate().plusMonths(termNumber - 1);
+            case WEEKLY  -> termStart = installmentExpense.getStartDate().plusWeeks(termNumber - 1);
+            default -> throw new IllegalStateException(
+                    "Unsupported payment frequency: " + installmentExpense.getPaymentFrequency()
+            );
+        }
+        return termStart;
     }
 }
