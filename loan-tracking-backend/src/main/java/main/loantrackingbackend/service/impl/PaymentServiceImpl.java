@@ -43,7 +43,6 @@ public class PaymentServiceImpl implements PaymentService {
         Entry entry = entryRepository.findById(dto.getEntryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
 
-        // can change this if we have a different rule for overpayment
         if (entry.getStatus() == PaymentStatus.PAID) {
             throw new IllegalStateException("This entry is already fully paid. No more payments allowed.");
         }
@@ -124,6 +123,20 @@ public class PaymentServiceImpl implements PaymentService {
                 .toList();
     }
 
+    @Override
+    public List<PaymentResponseDto> getPaymentsForAllocation(UUID entryId, Long memberPersonId) {
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        Person payee = personRepository.findById(memberPersonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payee not found"));
+
+        List<Payment> payments = paymentRepository.findByEntryAndPayee(payee, entry);
+        return payments.stream()
+                .map(PaymentMapper::mapToPaymentResponseDto)
+                .toList();
+    }
+    
     @Override
     public List<PaymentResponseDto> getPaymentsByEntry(UUID entryId) {
 
