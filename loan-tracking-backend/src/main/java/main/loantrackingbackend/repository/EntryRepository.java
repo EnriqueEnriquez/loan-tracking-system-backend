@@ -14,6 +14,7 @@ public interface EntryRepository extends JpaRepository<Entry, UUID> {
     GroupExpense findGEById(UUID entryId);
 
     List<Entry> findAllByPaymentsPayeePersonId(Long payeeId);
+    List<Entry> findAllByStatus(PaymentStatus paymentStatus);
 
     boolean existsByPersonLender(Person personLender);
 

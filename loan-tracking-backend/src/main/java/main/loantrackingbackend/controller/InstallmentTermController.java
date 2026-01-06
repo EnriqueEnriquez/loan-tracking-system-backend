@@ -38,7 +38,8 @@ public class InstallmentTermController {
                 term.getTermId(),
                 term.getTermNumber(),
                 term.getDueDate(),
-                term.getInstallmentStatus()
+                term.getInstallmentStatus(),
+                term.getNotes()
         );
         return ResponseEntity.ok(dto);
     }
@@ -65,7 +66,8 @@ public class InstallmentTermController {
                         term.getTermId(),
                         term.getTermNumber(),
                         term.getDueDate(),
-                        term.getInstallmentStatus()
+                        term.getInstallmentStatus(),
+                        term.getNotes()
                 ))
                 .collect(Collectors.toList());
 
@@ -73,16 +75,25 @@ public class InstallmentTermController {
     }
 
     @PostMapping("/skip/{termId}")
-    public ResponseEntity<InstallmentTerm> skipTerm(@PathVariable Long termId) {
+    public ResponseEntity<TermResponseDto> skipTerm(@PathVariable Long termId) {
         InstallmentTerm newTerm = installmentTermService.skipTermAndCreateNew(termId);
-        return ResponseEntity.ok(newTerm);
+
+        TermResponseDto dto = new TermResponseDto(
+                newTerm.getTermId(),
+                newTerm.getTermNumber(),
+                newTerm.getDueDate(),
+                newTerm.getInstallmentStatus(),
+                newTerm.getNotes()
+        );
+        return ResponseEntity.ok(dto);
     }
 
     public record TermResponseDto(
             Long termId,
             int termNumber,
             java.time.LocalDate dueDate,
-            InstallmentStatus status
+            InstallmentStatus status,
+            String notes
     ) {}
 
     @PatchMapping("/edit-notes/{termId}")

@@ -47,19 +47,17 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
     }
 
     @Override
-    public List<PaymentAllocationResponseDto> getPaymentAllocationByGroupMember(UUID groupExpenseEntryId, Long personId) {
-        GroupExpense groupExpense = entryRepository.findGEById(groupExpenseEntryId);
-        if (groupExpense == null) {
-            throw new ResourceNotFoundException("Group expense not found");
-        }
-
-        Long groupId = groupExpense.getGroupBorrower().getGroupId();
-
-        GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(groupId, personId);
-
-        return PaymentAllocationMapper.mapToResponseList(
-                paymentAllocationRepository.findByGroupMember(member)
-        );
+    public PaymentAllocationResponseDto getPaymentAllocationByGroupMember(UUID id, Long personId) {
+        return getPaymentAllocationById(id).stream()
+                .filter(allocation ->
+                        allocation.getGroupMemberPersonId().equals(personId)
+                )
+                .findFirst()
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Payment allocation not found for this group member"
+                        )
+                );
     }
 
     @Override

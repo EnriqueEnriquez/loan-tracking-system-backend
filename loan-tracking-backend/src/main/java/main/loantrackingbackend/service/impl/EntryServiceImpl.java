@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.*;
 import main.loantrackingbackend.enums.PaymentFrequency;
+import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.mapper.PaymentAllocationMapper;
@@ -256,6 +257,16 @@ public class EntryServiceImpl implements EntryService {
 
         entryRepository.delete(entry);
     }
+
+    @Override
+    public void deleteAllPaidEntries() throws IOException {
+        List<Entry> paidEntries = entryRepository.findAllByStatus(PaymentStatus.PAID);
+        for (Entry entry : paidEntries) {
+            UUID entryID = entry.getId();
+            deleteEntry(entryID);
+        }
+    }
+
 
     @Override
     public InstallmentResponseDto createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException {
