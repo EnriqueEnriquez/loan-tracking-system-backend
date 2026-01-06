@@ -21,7 +21,7 @@ public class Group {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long groupId;
 
-    @Column(name = "group_name", nullable = false)
+    @Column(name = "group_name", nullable = false, unique = true)
     private String groupName;
 
     @OneToMany(

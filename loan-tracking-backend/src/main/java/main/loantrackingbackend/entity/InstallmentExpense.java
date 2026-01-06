@@ -44,4 +44,11 @@ public class InstallmentExpense extends Entry{
     public DayOfWeek getWeeklyPayDay(){
         return startDate.getDayOfWeek();
     }
+
+    @Override
+    public String getBorrowerName() {
+        return personBorrower != null ?
+                personBorrower.getFirstName() + " " + personBorrower.getLastName() :
+                "Unknown";
+    }
 }

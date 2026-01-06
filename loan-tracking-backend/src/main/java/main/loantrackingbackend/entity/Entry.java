@@ -39,13 +39,6 @@ public class Entry {
     private LocalDate dateBorrowed;
     private LocalDate dateFullyPaid;
 
-    // to be decided if needed for this table
-    @Column(nullable = false)
-    private String borrowerName;
-
-    @Column(nullable = false)
-    private String lenderName;
-
     @ManyToOne
     @JoinColumn(name = "lender_id")
     private Person personLender;
@@ -68,4 +61,15 @@ public class Entry {
 
     @OneToMany(mappedBy = "entry", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Payment> payments = new ArrayList<>();
+
+    // Add a helper method to get the name dynamically
+    public String getLenderName() {
+        return personLender != null ?
+                personLender.getFirstName() + " " + personLender.getLastName() :
+                "Unknown";
+    }
+
+    public String getBorrowerName() {
+        return "";
+    }
 }

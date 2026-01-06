@@ -19,10 +19,14 @@ public class GroupMemberController {
     private GroupMemberService groupMemberService;
 
     @PostMapping("/{personId}")
-    public ResponseEntity<GroupMemberDto> addMember(@PathVariable Long groupId, @PathVariable Long personId) {
-        GroupMemberDto groupMemberDto = groupMemberService.addMember(groupId, personId);
-
-        return new ResponseEntity<>(groupMemberDto, HttpStatus.CREATED);
+    public ResponseEntity<?> addMember(@PathVariable Long groupId, @PathVariable Long personId) {
+        try {
+            GroupMemberDto groupMemberDto = groupMemberService.addMember(groupId, personId);
+            return new ResponseEntity<>(groupMemberDto, HttpStatus.CREATED);
+        } catch (Exception e) {
+            Map<String, String> response= Collections.singletonMap("message", e.getMessage());
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping

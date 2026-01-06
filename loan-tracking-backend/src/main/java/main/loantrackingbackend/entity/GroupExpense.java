@@ -20,6 +20,13 @@ public class GroupExpense extends Entry {
     @JoinColumn(name = "borrower_group_id")
     private Group groupBorrower;
 
+    @Override
+    public String getBorrowerName() {
+        return groupBorrower != null ?
+                groupBorrower.getGroupName() :
+                "Unknown";
+    }
+
     @OneToMany(mappedBy = "groupExpense", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PaymentAllocation> paymentAllocations = new ArrayList<>();
 

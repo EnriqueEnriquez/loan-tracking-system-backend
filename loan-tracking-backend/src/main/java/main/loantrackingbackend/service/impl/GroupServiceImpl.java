@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.GroupDto;
 import main.loantrackingbackend.entity.Group;
 import main.loantrackingbackend.enums.PaymentStatus;
+import main.loantrackingbackend.exception.DuplicateResourceException;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.GroupMapper;
 import main.loantrackingbackend.repository.GroupExpenseRepository;
@@ -26,7 +27,12 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     public GroupDto createGroup(GroupDto groupDto) {
+        if (groupRepository.existsByGroupName(groupDto.getGroupName())) {
+            throw new DuplicateResourceException("Group with name " + groupDto.getGroupName() + " already exists");
+        }
+
         Group group = GroupMapper.mapToGroup(groupDto);
+
         Group saveGroup = groupRepository.save(group);
 
         return GroupMapper.mapToGroupDto(saveGroup);
@@ -49,6 +55,10 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     public GroupDto updateGroup(Long groupId, GroupDto groupDto) {
+        if (groupRepository.existsByGroupName(groupDto.getGroupName())) {
+            throw new DuplicateResourceException("Group with name " + groupDto.getGroupName() + " already exists");
+        }
+
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group does not exist with id: " + groupId));
 

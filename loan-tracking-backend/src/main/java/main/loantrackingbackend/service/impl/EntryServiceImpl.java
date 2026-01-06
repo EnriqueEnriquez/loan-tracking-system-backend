@@ -223,13 +223,11 @@ public class EntryServiceImpl implements EntryService {
         Person lender = personRepository.findById(seCreateDto.getLenderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
 
-        straightExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
         straightExpense.setPersonLender(lender);
 
         Person borrower = personRepository.findById(seCreateDto.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
 
-        straightExpense.setBorrowerName(borrower.getFirstName() + " " + borrower.getLastName());
         straightExpense.setPersonBorrower(borrower);
         straightExpense.setAmountRemaining(straightExpense.getAmountBorrowed());
 
@@ -266,13 +264,11 @@ public class EntryServiceImpl implements EntryService {
         Person lender = personRepository.findById(installmentCreateDto.getLenderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
 
-        installmentExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
         installmentExpense.setPersonLender(lender);
 
         Person borrower = personRepository.findById(installmentCreateDto.getBorrowerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
 
-        installmentExpense.setBorrowerName(borrower.getFirstName() + " " + borrower.getLastName());
         installmentExpense.setPersonBorrower(borrower);
         installmentExpense.setAmountRemaining(installmentExpense.getAmountBorrowed());
 
@@ -300,13 +296,13 @@ public class EntryServiceImpl implements EntryService {
 
         Person lender = personRepository.findById(geCreateDto.getLenderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
-        groupExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
+
         groupExpense.setPersonLender(lender);
 
         Group borrower = groupRepository.findById(geCreateDto.getBorrowerGroupId())
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
         groupExpense.setGroupBorrower(borrower);
-        groupExpense.setBorrowerName(borrower.getGroupName());
+
 
         groupExpense.setAmountRemaining(groupExpense.getAmountBorrowed());
 
@@ -329,12 +325,12 @@ public class EntryServiceImpl implements EntryService {
         Person lender = personRepository.findById(geCreateDto.getLenderId())
                 .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
         groupExpense.setPersonLender(lender);
-        groupExpense.setLenderName(lender.getFirstName() + " " + lender.getLastName());
+
 
         Group borrower = groupRepository.findById(geCreateDto.getBorrowerGroupId())
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
         groupExpense.setGroupBorrower(borrower);
-        groupExpense.setBorrowerName(borrower.getGroupName());
+
 
         groupExpense.setAmountRemaining(groupExpense.getAmountBorrowed());
 

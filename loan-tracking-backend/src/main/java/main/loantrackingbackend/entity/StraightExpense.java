@@ -1,9 +1,6 @@
 package main.loantrackingbackend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,5 +17,12 @@ public class StraightExpense extends Entry {
     @ManyToOne
     @JoinColumn(name = "borrower_id")
     private Person personBorrower;
+
+    @Override
+    public String getBorrowerName() {
+        return personBorrower != null ?
+                personBorrower.getFirstName() + " " + personBorrower.getLastName() :
+                "Unknown";
+    }
 
 }

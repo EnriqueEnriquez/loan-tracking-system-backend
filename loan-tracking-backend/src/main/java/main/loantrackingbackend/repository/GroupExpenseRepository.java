@@ -27,4 +27,7 @@ public interface GroupExpenseRepository extends JpaRepository<GroupExpense, UUID
     );
 
     boolean existsByGroupBorrower(Group groupBorrower);
+
+    boolean existsByGroupBorrowerAndStatusIn(Group groupBorrower, List<PaymentStatus> statuses);
 }
+

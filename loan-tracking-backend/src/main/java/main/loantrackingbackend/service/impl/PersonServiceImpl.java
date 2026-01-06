@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PersonDto;
 import main.loantrackingbackend.entity.Person;
 import main.loantrackingbackend.enums.PaymentStatus;
+import main.loantrackingbackend.exception.DuplicateResourceException;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PersonMapper;
 import main.loantrackingbackend.repository.*;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +28,15 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public PersonDto createPerson(PersonDto personDto) {
+
+        if (personRepository.existsByFirstNameAndLastName(personDto.getFirstName(), personDto.getLastName())) {
+            throw new DuplicateResourceException("Person with name " + personDto.getFirstName() + " " + personDto.getLastName() + " already exists");
+        }
+
+        if (personRepository.existsByContact(personDto.getContact())) {
+            throw new DuplicateResourceException("Contact " + personDto.getContact() + " already exists");
+        }
+
 
         Person person = PersonMapper.mapToPerson(personDto);
         Person savedPerson = personRepository.save(person);
@@ -50,32 +61,23 @@ public class PersonServiceImpl implements PersonService {
     @Override
     public PersonDto updatePerson(Long personId, PersonDto updatedPerson) {
 
+        if (personRepository.existsByFirstNameAndLastName(updatedPerson.getFirstName(), updatedPerson.getLastName())) {
+            throw new DuplicateResourceException("Person with name " + updatedPerson.getFirstName() + " " + updatedPerson.getLastName() + " already exists");
+        }
+
         Person person = personRepository.findById(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Person does not exist with id: " + personId));
 
-        boolean isNameChanging = !person.getFirstName().equals(updatedPerson.getFirstName()) ||
-                !person.getLastName().equals(updatedPerson.getLastName());
-
-        if (isNameChanging) {
-            List<PaymentStatus> activeStatuses = Arrays.asList(
-                    PaymentStatus.UNPAID,
-                    PaymentStatus.PARTIALLY_PAID
-            );
-
-            boolean hasExpenses =
-                    entryRepository.existsByPersonLender(person)
-                            || straightExpenseRepository.existsByPersonBorrower(person)
-                            || installmentExpenseRepository.existsByPersonBorrower(person)
-                            || paymentAllocationRepository.existsByGroupMemberBorrower(person);
-
-            if (hasExpenses) {
-                throw new IllegalStateException("Cannot update Name for person with id: " + personId + " because they have associated expenses");
-            }
+        if (personRepository.existsByContact(updatedPerson.getContact()) && !Objects.equals(person.getContact(), updatedPerson.getContact())) {
+            throw new DuplicateResourceException("Contact " + updatedPerson.getContact() + " already exists");
         }
 
         person.setFirstName(updatedPerson.getFirstName());
         person.setLastName(updatedPerson.getLastName());
-        person.setContact(updatedPerson.getContact()); // Always allow contact updates
+
+        if (!Objects.equals(person.getContact(), updatedPerson.getContact())) {
+            person.setContact(updatedPerson.getContact());
+        }
 
         Person savedPerson = personRepository.save(person);
 
