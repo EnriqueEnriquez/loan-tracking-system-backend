@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByPayee(Person payee);
     List<Payment> findByEntry(Entry entry);
+    List<Payment> findByEntryAndPayee(Person payee, Entry entry);
     void deleteByPayeePersonId(Long personId);
     void deleteByEntryId(UUID entryId);
 }
