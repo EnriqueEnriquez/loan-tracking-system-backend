@@ -44,8 +44,11 @@ public class PaymentController {
         return new ResponseEntity<>(payments, HttpStatus.OK);
     }
 
-    //getpaymentsforallocation
-    //getpaymentforinstallmentterm
+    @GetMapping("/allocation/{entryId}/{personId}")
+    public ResponseEntity<List<PaymentResponseDto>> getPaymentsForAllocation(@PathVariable UUID entryId, @PathVariable Long memberPersonId){
+        List<PaymentResponseDto> payments = paymentService.getPaymentsForAllocation(entryId, memberPersonId);
+        return new ResponseEntity<>(payments, HttpStatus.OK);
+    }
 
     @GetMapping("/all")
     public ResponseEntity<List<PaymentResponseDto>> getAllPayments() {
