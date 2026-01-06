@@ -45,13 +45,13 @@ public class GroupMemberImpl implements GroupMemberService {
                 PaymentStatus.PARTIALLY_PAID
         );
 
-        if (groupExpenseRepository.existsByGroupBorrowerAndStatusIn(group, activeStatuses)) {
-            throw new IllegalArgumentException("Cannot add member to group " + group.getGroupName() + "since group is" +
-                    "associated with ongoing expense.");
-        }
-
         if (groupMemberRepository.existsById(id)) {
             throw new IllegalStateException("Person already in group");
+        }
+
+        if (groupExpenseRepository.existsByGroupBorrowerAndStatusIn(group, activeStatuses)) {
+            throw new IllegalArgumentException("Cannot add member to group " + group.getGroupName() + " since group is " +
+                    " associated with ongoing expense.");
         }
 
         GroupMember member = new GroupMember();
