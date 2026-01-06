@@ -3,7 +3,7 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.*;
-import main.loantrackingbackend.enums.PaymentFrequency;
+import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.mapper.PaymentAllocationMapper;
@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -251,6 +250,15 @@ public class EntryServiceImpl implements EntryService {
         }
 
         entryRepository.delete(entry);
+    }
+
+    @Override
+    public void deleteAllPaidEntries() throws IOException {
+        List<Entry> paidEntries = entryRepository.findAllByStatus(PaymentStatus.PAID);
+        for (Entry entry : paidEntries) {
+            UUID entryID = entry.getId();
+            deleteEntry(entryID);
+        }
     }
 
     @Override

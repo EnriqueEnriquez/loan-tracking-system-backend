@@ -38,7 +38,7 @@ public class PaymentAllocationController {
     }
 
     @GetMapping("/{entryId}/payment-allocations/member/{groupMemberPersonId}")
-    public ResponseEntity<List<PaymentAllocationResponseDto>> getAllocationsByMember(@PathVariable UUID entryId, @PathVariable Long groupMemberPersonId) {
+    public ResponseEntity<PaymentAllocationResponseDto> getAllocationsByMember(@PathVariable UUID entryId, @PathVariable Long groupMemberPersonId) {
         return ResponseEntity.ok(paymentAllocationService.getPaymentAllocationByGroupMember(entryId, groupMemberPersonId));
     }
 

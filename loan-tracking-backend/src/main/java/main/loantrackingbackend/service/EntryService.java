@@ -1,9 +1,6 @@
 package main.loantrackingbackend.service;
 
 import main.loantrackingbackend.dto.*;
-import main.loantrackingbackend.entity.Entry;
-import main.loantrackingbackend.entity.GroupExpense;
-import main.loantrackingbackend.entity.InstallmentExpense;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,6 +20,7 @@ public interface EntryService {
 
     // Delete any type of entry
     void deleteEntry(UUID entryId) throws IOException;
+    void deleteAllPaidEntries() throws IOException;
 
     StraightResponseDto createStraightExpense(StraightCreateDto seCreateDto) throws IOException;
 

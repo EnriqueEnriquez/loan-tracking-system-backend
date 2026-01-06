@@ -10,7 +10,7 @@ import java.util.UUID;
 public interface PaymentAllocationService {
     PaymentAllocationResponseDto createPaymentAllocation(PaymentAllocationCreateDto dto) throws IOException;
     PaymentAllocationResponseDto getPaymentAllocationByAllocationId(Long allocationId);
-    List<PaymentAllocationResponseDto> getPaymentAllocationByGroupMember(UUID groupExpenseEntryId, Long groupMemberPersonId);
+    PaymentAllocationResponseDto getPaymentAllocationByGroupMember(UUID groupExpenseEntryId, Long groupMemberPersonId);
     List<PaymentAllocationResponseDto> getPaymentAllocationById(UUID id);
     List<PaymentAllocationResponseDto> getAllPaymentAllocations();
     void deleteAllPaymentAllocations();

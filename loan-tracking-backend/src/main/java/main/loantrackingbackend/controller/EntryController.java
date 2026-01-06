@@ -75,6 +75,12 @@ public class EntryController {
         return new ResponseEntity<>("Expense Entry Deleted", HttpStatus.OK);
     }
 
+    @DeleteMapping("/paid")
+    public ResponseEntity<String> deleteAllPaidExpenses() throws IOException {
+        entryService.deleteAllPaidEntries();
+        return new ResponseEntity<>("All Paid Expense Entries are Deleted", HttpStatus.OK);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest().body(ex.getMessage());

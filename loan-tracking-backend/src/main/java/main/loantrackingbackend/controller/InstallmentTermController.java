@@ -71,9 +71,15 @@ public class InstallmentTermController {
     }
 
     @PostMapping("/skip/{termId}")
-    public ResponseEntity<InstallmentTerm> skipTerm(@PathVariable Long termId) {
+    public ResponseEntity<TermResponseDto> skipTerm(@PathVariable Long termId) {
         InstallmentTerm newTerm = installmentTermService.skipTermAndCreateNew(termId);
-        return ResponseEntity.ok(newTerm);
+        TermResponseDto dto = new TermResponseDto(
+                newTerm.getTermId(),
+                newTerm.getTermNumber(),
+                newTerm.getDueDate(),
+                newTerm.getInstallmentStatus()
+        );
+        return ResponseEntity.ok(dto);
     }
 
     public record TermResponseDto(
