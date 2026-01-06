@@ -15,6 +15,6 @@ public interface EntryRepository extends JpaRepository<Entry, UUID> {
 
     List<Entry> findAllByPaymentsPayeePersonId(Long payeeId);
 
-    boolean existsByPersonLenderAndStatusIn(Person personLender, List<PaymentStatus> statuses);
+    boolean existsByPersonLender(Person personLender);
 
 }

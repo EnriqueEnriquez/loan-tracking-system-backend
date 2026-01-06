@@ -62,14 +62,14 @@ public class PersonServiceImpl implements PersonService {
                     PaymentStatus.PARTIALLY_PAID
             );
 
-            boolean hasActiveDebt =
-                    entryRepository.existsByPersonLenderAndStatusIn(person, activeStatuses)
-                            || straightExpenseRepository.existsByPersonBorrowerAndStatusIn(person, activeStatuses)
-                            || installmentExpenseRepository.existsByPersonBorrowerAndStatusIn(person, activeStatuses)
-                            || paymentAllocationRepository.existsByPersonAndGroupExpenseStatus(person, activeStatuses);
+            boolean hasExpenses =
+                    entryRepository.existsByPersonLender(person)
+                            || straightExpenseRepository.existsByPersonBorrower(person)
+                            || installmentExpenseRepository.existsByPersonBorrower(person)
+                            || paymentAllocationRepository.existsByGroupMemberBorrower(person);
 
-            if (hasActiveDebt) {
-                throw new IllegalStateException("Cannot update Name for person with id: " + personId + " because they have active financial records.");
+            if (hasExpenses) {
+                throw new IllegalStateException("Cannot update Name for person with id: " + personId + " because they have associated expenses");
             }
         }
 
@@ -93,11 +93,11 @@ public class PersonServiceImpl implements PersonService {
                 PaymentStatus.PARTIALLY_PAID
         );
 
-        if (entryRepository.existsByPersonLenderAndStatusIn(person, activeStatuses)
-            || straightExpenseRepository.existsByPersonBorrowerAndStatusIn(person, activeStatuses)
-            || installmentExpenseRepository.existsByPersonBorrowerAndStatusIn(person, activeStatuses)
-            || paymentAllocationRepository.existsByPersonAndGroupExpenseStatus(person, activeStatuses)) {
-            return "Cannot delete person with id: " + personId + " because they are associated with active expense/s";
+        if (entryRepository.existsByPersonLender(person)
+            || straightExpenseRepository.existsByPersonBorrower(person)
+            || installmentExpenseRepository.existsByPersonBorrower(person)
+            || paymentAllocationRepository.existsByGroupMemberBorrower(person)) {
+            return "Cannot delete person with id: " + personId + " because they are associated with expense/s. Delete those expense first.";
         }
 
         personRepository.delete(person);

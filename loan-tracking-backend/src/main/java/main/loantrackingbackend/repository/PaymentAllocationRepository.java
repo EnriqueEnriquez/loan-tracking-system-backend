@@ -21,10 +21,7 @@ public interface PaymentAllocationRepository extends JpaRepository<PaymentAlloca
         JOIN pa.groupMember gm
         JOIN pa.groupExpense ge
         WHERE gm.person = :person
-        AND ge.status IN :statuses
    \s""")
-    boolean existsByPersonAndGroupExpenseStatus(
-            @Param("person") Person personBorrower,
-            @Param("statuses") List<PaymentStatus> statuses
-    );
+    boolean existsByGroupMemberBorrower(
+            @Param("person") Person personBorrower);
 }

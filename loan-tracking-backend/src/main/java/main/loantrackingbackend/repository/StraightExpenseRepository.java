@@ -10,6 +10,6 @@ import java.util.UUID;
 
 public interface StraightExpenseRepository extends JpaRepository<StraightExpense, UUID> {
 
-        boolean existsByPersonBorrowerAndStatusIn(Person personBorrower, List<PaymentStatus> statuses);
+        boolean existsByPersonBorrower(Person personBorrower);
 
 }

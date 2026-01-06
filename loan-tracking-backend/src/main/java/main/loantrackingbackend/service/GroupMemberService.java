@@ -8,6 +8,7 @@ import java.util.List;
 public interface GroupMemberService {
     GroupMemberDto addMember(Long groupId, Long personId);
 
-    void removeMember(Long groupId, Long personId);
+    String removeMember(Long groupId, Long personId);
+
     List<PersonDto> getMembersByGroupId(Long groupId);
 }

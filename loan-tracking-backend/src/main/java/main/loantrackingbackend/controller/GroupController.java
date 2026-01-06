@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @AllArgsConstructor
 @RestController
@@ -45,9 +47,16 @@ public class GroupController {
     }
 
     @DeleteMapping("{id}")
-    public ResponseEntity<String> deleteGroup(@PathVariable("id") Long groupId) {
-        groupService.deleteGroup(groupId);
-        return new ResponseEntity<>("Group deleted", HttpStatus.OK);
+    public ResponseEntity<Map<String, String>> deleteGroup(@PathVariable("id") Long groupId) {
+        String resultMessage  = groupService.deleteGroup(groupId);
+
+        Map<String, String> response = Collections.singletonMap("message", resultMessage);
+
+        if (resultMessage.startsWith("Cannot")) {
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+        }
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
 }

@@ -7,15 +7,18 @@ import main.loantrackingbackend.entity.Group;
 import main.loantrackingbackend.entity.GroupMember;
 import main.loantrackingbackend.entity.Person;
 import main.loantrackingbackend.entity.embedabble.GroupMemberId;
+import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.GroupMemberMapper;
 import main.loantrackingbackend.mapper.PersonMapper;
+import main.loantrackingbackend.repository.GroupExpenseRepository;
 import main.loantrackingbackend.repository.GroupMemberRepository;
 import main.loantrackingbackend.repository.GroupRepository;
 import main.loantrackingbackend.repository.PersonRepository;
 import main.loantrackingbackend.service.GroupMemberService;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class GroupMemberImpl implements GroupMemberService {
 
+    private final GroupExpenseRepository groupExpenseRepository;
     private PersonRepository personRepository;
     private GroupRepository groupRepository;
     private GroupMemberRepository groupMemberRepository;
@@ -55,13 +59,21 @@ public class GroupMemberImpl implements GroupMemberService {
     }
 
     @Override
-    public void removeMember(Long groupId, Long personId) {
+    public String removeMember(Long groupId, Long personId) {
         GroupMemberId id = new GroupMemberId(groupId, personId);
 
         GroupMember member = groupMemberRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
 
+        if (groupExpenseRepository.existsByGroupMember(member))
+            return "Cannot delete group member" + member.getPerson().getFirstName() + member.getPerson().getLastName() +
+                    "with id " + member.getPerson().getPersonId() +
+                    "since they are involved with group expense/s. Delete those expense first.";
+
         groupMemberRepository.delete(member);
+        return "Successfully deleted group member" + member.getPerson().getFirstName()
+                + member.getPerson().getLastName() +
+                "with id " + member.getPerson().getPersonId();
     }
 
     @Override

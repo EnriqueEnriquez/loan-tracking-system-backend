@@ -3,13 +3,16 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.GroupDto;
 import main.loantrackingbackend.entity.Group;
+import main.loantrackingbackend.enums.PaymentStatus;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.GroupMapper;
+import main.loantrackingbackend.repository.GroupExpenseRepository;
 import main.loantrackingbackend.repository.GroupMemberRepository;
 import main.loantrackingbackend.repository.GroupRepository;
 import main.loantrackingbackend.service.GroupService;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,6 +20,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class GroupServiceImpl implements GroupService {
 
+    private final GroupExpenseRepository groupExpenseRepository;
     private GroupRepository groupRepository;
     private GroupMemberRepository groupMemberRepository;
 
@@ -56,11 +60,17 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public void deleteGroup(Long groupId) {
+    public String deleteGroup(Long groupId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group does not exist with id: " + groupId));
 
+        if (groupExpenseRepository.existsByGroupBorrower(group)) {
+            return "Cannot delete Group " + group.getGroupName() + " with group id: " + groupId +
+                    "because it is associated with expense/s. Delete those expense first.";
+        }
+
         groupRepository.delete(group);
+        return "Group " + group.getGroupName() + "with group id: " + groupId + " has been deleted";
     }
 
     @Override

@@ -176,34 +176,40 @@ public class EntryServiceImpl implements EntryService {
     }
 
     private GroupExpense handleGroupExpenseUpdate(GroupExpense entry, EntryUpdateDto updateDto) throws IOException {
-        if(updateDto.getGroupBorrowerId() != null && paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+        if(paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+
             if (updateDto.getAmountBorrowed() != null) {
                 entry.setAmountBorrowed(updateDto.getAmountBorrowed());
                 entry.setAmountRemaining(updateDto.getAmountBorrowed());
             }
 
-            Group groupBorrower = groupRepository.findById(updateDto.getGroupBorrowerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + updateDto.getGroupBorrowerId()));
-            entry.setGroupBorrower(groupBorrower);
-        }
-        entry.setReferenceId(getReferenceId(entry));
-
-        entry = entryRepository.save(entry);
-
-        paymentAllocationService.deletePaymentAllocationById(entry.getId());
-
-        if (updateDto.getPaymentAllocations() != null) {
-            for (PaymentAllocationCreateDto allocationDto : updateDto.getPaymentAllocations()) {
-
-                GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(
-                        entry.getGroupBorrower().getGroupId(),
-                        allocationDto.getGroupMemberPersonId()
-                );
-
-                PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(allocationDto, entry, member);
-
-                entry.addPaymentAllocation(allocation);
+            if (updateDto.getGroupBorrowerId() != null) {
+                Group groupBorrower = groupRepository.findById(updateDto.getGroupBorrowerId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + updateDto.getGroupBorrowerId()));
+                entry.setGroupBorrower(groupBorrower);
             }
+
+
+            entry.setReferenceId(getReferenceId(entry));
+
+            entry = entryRepository.save(entry);
+
+            paymentAllocationService.deletePaymentAllocationById(entry.getId());
+
+            if (updateDto.getPaymentAllocations() != null) {
+                for (PaymentAllocationCreateDto allocationDto : updateDto.getPaymentAllocations()) {
+
+                    GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(
+                            entry.getGroupBorrower().getGroupId(),
+                            allocationDto.getGroupMemberPersonId()
+                    );
+
+                    PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(allocationDto, entry, member);
+
+                    entry.addPaymentAllocation(allocation);
+                }
+            }
+            entry = entryRepository.save(entry);
         }
 
         return entry;
