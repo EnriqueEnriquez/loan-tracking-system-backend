@@ -44,6 +44,9 @@ public class PaymentController {
         return new ResponseEntity<>(payments, HttpStatus.OK);
     }
 
+    //getpaymentsforallocation
+    //getpaymentforinstallmentterm
+
     @GetMapping("/all")
     public ResponseEntity<List<PaymentResponseDto>> getAllPayments() {
         return ResponseEntity.ok(paymentService.getAllPayments());
