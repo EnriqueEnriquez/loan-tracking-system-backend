@@ -13,6 +13,7 @@ public interface PaymentService {
     List<PaymentResponseDto> getPaymentsByPayee(Long payeeId);
     List<PaymentResponseDto> getPaymentsByEntry(UUID entryId);
     List<PaymentResponseDto> getAllPayments();
+    List<PaymentResponseDto> getPaymentsForAllocation(UUID entryId, Long memberPersonId);
     void deleteAllPayments();
     void deletePaymentsByPayee(Long payeeId);
     void deletePaymentsByEntry(UUID entryId);
