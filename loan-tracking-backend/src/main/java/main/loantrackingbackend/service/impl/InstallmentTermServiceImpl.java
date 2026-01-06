@@ -1,9 +1,12 @@
 package main.loantrackingbackend.service.impl;
 
 import lombok.AllArgsConstructor;
+import main.loantrackingbackend.dto.InstallmentTermNotesDto;
+import main.loantrackingbackend.dto.InstallmentTermResponseDto;
 import main.loantrackingbackend.entity.InstallmentExpense;
 import main.loantrackingbackend.entity.InstallmentTerm;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
+import main.loantrackingbackend.mapper.InstallmentTermMapper;
 import main.loantrackingbackend.repository.InstallmentTermRepository;
 import main.loantrackingbackend.service.InstallmentTermService;
 import org.springframework.stereotype.Service;
@@ -78,5 +81,16 @@ public class InstallmentTermServiceImpl implements InstallmentTermService {
         newTerm.setDueDate(newDueDate);
 
         return installmentTermRepository.save(newTerm);
+    }
+
+    public InstallmentTermResponseDto updateInstallmentTermNotes (Long termId, InstallmentTermNotesDto installmentTermNotesDto) {
+        InstallmentTerm installmentTerm = installmentTermRepository.findById(termId)
+                .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
+
+        installmentTerm.setNotes(installmentTermNotesDto.getNotes());
+        installmentTermRepository.save(installmentTerm);
+
+        return InstallmentTermMapper.mapToInstallmentResponseDto(installmentTerm);
+
     }
 }

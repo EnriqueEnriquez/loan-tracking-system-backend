@@ -20,4 +20,5 @@ public class PaymentAllocationResponseDto {
     private PaymentAllocationStatus paymentAllocationStatus;
     private BigDecimal percent;
     private UUID groupExpenseEntryId;
+    private String notes;
 }

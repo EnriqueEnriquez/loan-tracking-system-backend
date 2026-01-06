@@ -36,6 +36,8 @@ public class PaymentAllocation {
     @Column(nullable = false)
     private BigDecimal amount;
 
+    private String notes;
+
     @ManyToOne
     @JoinColumn(name = "groupExpense", nullable = false)
     private GroupExpense groupExpense;

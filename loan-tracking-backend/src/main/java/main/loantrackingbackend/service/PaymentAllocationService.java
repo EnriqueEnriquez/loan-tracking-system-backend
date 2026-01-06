@@ -13,6 +13,7 @@ public interface PaymentAllocationService {
     List<PaymentAllocationResponseDto> getPaymentAllocationByGroupMember(UUID groupExpenseEntryId, Long groupMemberPersonId);
     List<PaymentAllocationResponseDto> getPaymentAllocationById(UUID id);
     List<PaymentAllocationResponseDto> getAllPaymentAllocations();
+    PaymentAllocationResponseDto updatePaymentAllocationDescriptionAndNotes(Long allocationId, String description, String notes);
     void deleteAllPaymentAllocations();
     void deletePaymentAllocationByGroupMember(UUID groupExpenseEntryId, Long groupMemberPersonId);
     void deletePaymentAllocationById(UUID id);

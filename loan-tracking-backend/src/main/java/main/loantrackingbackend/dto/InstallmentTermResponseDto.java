@@ -17,5 +17,6 @@ public class InstallmentTermResponseDto {
     private LocalDate dueDate;
     private InstallmentStatus installmentStatus;
     private UUID installmentExpenseEntryId;
+    private String notes;
     private boolean skipped;
 }

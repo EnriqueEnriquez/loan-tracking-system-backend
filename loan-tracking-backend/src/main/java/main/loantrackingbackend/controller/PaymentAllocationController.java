@@ -3,6 +3,7 @@ package main.loantrackingbackend.controller;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PaymentAllocationCreateDto;
 import main.loantrackingbackend.dto.PaymentAllocationResponseDto;
+import main.loantrackingbackend.dto.PaymentAllocationUpdateDto;
 import main.loantrackingbackend.service.PaymentAllocationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,12 @@ public class PaymentAllocationController {
     @GetMapping("/payment-allocations")
     public ResponseEntity<List<PaymentAllocationResponseDto>> getAllAllocations() {
         return ResponseEntity.ok(paymentAllocationService.getAllPaymentAllocations());
+    }
+
+    @PatchMapping("/payment-allocation/{allocationId}/edit-desc-notes")
+    public ResponseEntity<PaymentAllocationResponseDto> updatePaymentAllocationDescriptionAndNotes (@PathVariable Long allocationId, @RequestBody PaymentAllocationUpdateDto dto) throws IOException {
+
+        return ResponseEntity.ok(paymentAllocationService.updatePaymentAllocationDescriptionAndNotes(allocationId, dto.getDescription(), dto.getNotes()));
     }
 
     @DeleteMapping("/payment-allocations")

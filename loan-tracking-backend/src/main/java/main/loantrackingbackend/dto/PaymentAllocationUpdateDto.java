@@ -14,4 +14,5 @@ public class PaymentAllocationUpdateDto {
     private BigDecimal amount;
     private BigDecimal percent;
     private UUID groupExpenseEntryId;
+    private String notes;
 }

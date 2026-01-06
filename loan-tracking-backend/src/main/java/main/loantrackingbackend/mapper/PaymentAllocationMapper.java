@@ -28,6 +28,7 @@ public class PaymentAllocationMapper {
         dto.setPercent(allocation.getPercent());
         dto.setAmountPaid(allocation.getAmountPaid());
         dto.setPaymentAllocationStatus(allocation.getPaymentAllocationStatus());
+        dto.setNotes(allocation.getNotes());
 
         assert allocation.getGroupMember() != null;
         dto.setGroupMemberDto(GroupMemberMapper.mapToGroupMemberDto(allocation.getGroupMember()).getPersonDto());
@@ -47,6 +48,7 @@ public class PaymentAllocationMapper {
         allocation.setAmount(dto.getAmount());
         allocation.setDescription(dto.getDescription());
         allocation.setPercent(dto.getPercent());
+        allocation.setNotes(dto.getNotes());
 
         return allocation;
     }

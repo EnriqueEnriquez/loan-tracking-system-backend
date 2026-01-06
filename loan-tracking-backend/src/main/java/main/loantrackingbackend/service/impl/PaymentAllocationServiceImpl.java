@@ -85,6 +85,16 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
     }
 
     @Override
+    public PaymentAllocationResponseDto updatePaymentAllocationDescriptionAndNotes(Long allocationId, String description, String notes) {
+        PaymentAllocation paymentAllocation = paymentAllocationRepository.findById(allocationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment Allocation not found"));
+        paymentAllocation.setDescription(description);
+        paymentAllocation.setNotes(notes);
+
+        return PaymentAllocationMapper.mapToPaymentAllocationResponseDto(paymentAllocationRepository.save(paymentAllocation));
+    }
+
+    @Override
     public void deleteAllPaymentAllocations() {
         paymentAllocationRepository.deleteAll();
     }
@@ -99,6 +109,8 @@ public class PaymentAllocationServiceImpl implements PaymentAllocationService {
 
         paymentAllocationRepository.deleteAll(paymentAllocationRepository.findByGroupMember(member));
     }
+
+
 
     @Override
     public void deletePaymentAllocationById(UUID entryId) {

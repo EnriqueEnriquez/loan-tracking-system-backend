@@ -1,6 +1,8 @@
 package main.loantrackingbackend.controller;
 
 import lombok.AllArgsConstructor;
+import main.loantrackingbackend.dto.InstallmentTermNotesDto;
+import main.loantrackingbackend.dto.InstallmentTermResponseDto;
 import main.loantrackingbackend.entity.Entry;
 import main.loantrackingbackend.entity.InstallmentExpense;
 import main.loantrackingbackend.entity.InstallmentTerm;
@@ -82,4 +84,10 @@ public class InstallmentTermController {
             java.time.LocalDate dueDate,
             InstallmentStatus status
     ) {}
+
+    @PatchMapping("/edit-notes/{termId}")
+    public ResponseEntity<InstallmentTermResponseDto> updateInstallmentTermNotes(@PathVariable Long termId, @RequestBody InstallmentTermNotesDto dto) {
+        return ResponseEntity.ok(installmentTermService.updateInstallmentTermNotes(termId, dto));
+    }
+
 }

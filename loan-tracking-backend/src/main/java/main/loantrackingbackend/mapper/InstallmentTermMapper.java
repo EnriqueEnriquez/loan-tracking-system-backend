@@ -12,6 +12,8 @@ public class InstallmentTermMapper {
         installmentTermResponseDto.setTermNumber(installmentTerm.getTermNumber());
         installmentTermResponseDto.setDueDate(installmentTerm.getDueDate());
         installmentTermResponseDto.setInstallmentExpenseEntryId(installmentTerm.getInstallmentExpense().getId());
+        installmentTermResponseDto.setNotes(installmentTerm.getNotes());
+        installmentTermResponseDto.setInstallmentStatus(installmentTerm.getInstallmentStatus());
         installmentTermResponseDto.setSkipped(installmentTerm.isSkipped());
 
         return installmentTermResponseDto;
