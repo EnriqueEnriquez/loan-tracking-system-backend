@@ -17,12 +17,15 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @AllArgsConstructor
 public class ImageProofServiceImpl implements ImageProofService {
     private ImageProofRepository imageProofRepository;
+
+    private final String FOLDER_PATH = "uploads/";
 
     @Override
     public ImageProof saveImageFile(Entry entry, MultipartFile imageFile) throws IOException {
@@ -43,6 +46,12 @@ public class ImageProofServiceImpl implements ImageProofService {
         imageProof.setEntry(entry);
 
         return imageProofRepository.save(imageProof);
+    }
+
+    public byte[] getImageFile(String imageName) throws IOException {
+        ImageProof imageProof = imageProofRepository.findByImageName(imageName);
+        String filePath = imageProof.getImageUrl();
+        return Files.readAllBytes(Paths.get(filePath));
     }
 
     @Override

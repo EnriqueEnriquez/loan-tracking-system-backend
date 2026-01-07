@@ -10,5 +10,7 @@ public interface PaymentProofService {
 
     PaymentProof savePaymentProof(Payment payment, MultipartFile imageFile) throws IOException;
 
+    byte[] getImagePaymentProof(String imageName) throws IOException;
+
     void deletePaymentProof(Long proofId) throws IOException;
 }

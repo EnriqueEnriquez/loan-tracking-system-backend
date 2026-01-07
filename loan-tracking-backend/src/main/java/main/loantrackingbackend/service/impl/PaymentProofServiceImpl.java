@@ -1,6 +1,7 @@
 package main.loantrackingbackend.service.impl;
 
 import lombok.AllArgsConstructor;
+import main.loantrackingbackend.entity.ImageProof;
 import main.loantrackingbackend.entity.Payment;
 import main.loantrackingbackend.entity.PaymentProof;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
@@ -42,6 +43,13 @@ public class PaymentProofServiceImpl implements PaymentProofService {
         paymentProof.setPayment(payment);
 
         return paymentProofRepository.save(paymentProof);
+    }
+
+    @Override
+    public byte[] getImagePaymentProof(String imageName) throws IOException {
+        PaymentProof paymentProof = paymentProofRepository.findByImageName(imageName);
+        String filePath = paymentProof.getImageUrl();
+        return Files.readAllBytes(Paths.get(filePath));
     }
 
     @Override

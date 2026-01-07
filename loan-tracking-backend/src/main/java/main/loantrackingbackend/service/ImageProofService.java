@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface ImageProofService {
     ImageProof saveImageFile(Entry entry, MultipartFile imageFile) throws IOException;
 
+    byte[] getImageFile(String imageName) throws IOException;
+
     List<ImageProof> saveImageFilesList(Entry entry, List<MultipartFile> imageFiles) throws IOException;
 
     void deleteImageFile(Long imageId) throws IOException;
