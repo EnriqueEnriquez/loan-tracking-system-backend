@@ -1,5 +1,6 @@
 package main.loantrackingbackend.controller;
 
+import main.loantrackingbackend.dto.TestDateDto;
 import main.loantrackingbackend.util.TestDateManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,8 +17,8 @@ public class TestDateController {
     }
 
     @PostMapping("/set")
-    public ResponseEntity<LocalDate> setDate(@RequestParam LocalDate date) {
-        TestDateManager.setDate(date);
+    public ResponseEntity<LocalDate> setDate(@RequestBody TestDateDto testDateDto) {
+        TestDateManager.setDate(testDateDto.getDate());
         return ResponseEntity.ok(TestDateManager.today());
     }
 
