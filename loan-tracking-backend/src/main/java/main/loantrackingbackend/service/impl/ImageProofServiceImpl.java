@@ -27,10 +27,11 @@ public class ImageProofServiceImpl implements ImageProofService {
     @Override
     public ImageProof saveImageFile(Entry entry, MultipartFile imageFile) throws IOException {
 
-        String folderDir = "uploads/";
-        Files.createDirectories(Paths.get(folderDir));
+        String uploadDir = "uploads/";
+        Files.createDirectories(Paths.get(uploadDir));
+
         String fileName = UUID.randomUUID() + "_" + imageFile.getOriginalFilename();
-        Path targetPath = Paths.get(folderDir, fileName);
+        Path targetPath = Paths.get(uploadDir).resolve(fileName);
 
         try (InputStream fileContent = imageFile.getInputStream()) {
             Files.copy(fileContent, targetPath, StandardCopyOption.REPLACE_EXISTING);
@@ -38,7 +39,7 @@ public class ImageProofServiceImpl implements ImageProofService {
 
         ImageProof imageProof = new ImageProof();
         imageProof.setImageName(fileName);
-        imageProof.setImageUrl(targetPath.toString());
+        imageProof.setImageUrl("/uploads/" + fileName);
         imageProof.setEntry(entry);
 
         return imageProofRepository.save(imageProof);
