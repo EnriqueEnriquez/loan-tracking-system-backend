@@ -27,6 +27,29 @@ public class EntryController {
         return new ResponseEntity<>(allEntriesGrouped, HttpStatus.OK);
     }
 
+    @GetMapping("/all/straight")
+    public ResponseEntity<List<EntryResponseDto>> getAllStraightEntries() throws IOException {
+        List<EntryResponseDto> allStraightExpense = entryService.getAllStraightExpense();
+
+        return new ResponseEntity<>(allStraightExpense, HttpStatus.OK);
+    }
+
+    @GetMapping("/all/installment")
+    public ResponseEntity<List<EntryResponseDto>> getAllInstallmentEntries() throws IOException {
+        List<EntryResponseDto> allInstallmentExpense = entryService.getAllStraightExpense();
+
+        return new ResponseEntity<>(allInstallmentExpense, HttpStatus.OK);
+    }
+
+    @GetMapping("/all/group")
+    public ResponseEntity<List<EntryResponseDto>> getAllGroupEntries() throws IOException {
+        List<EntryResponseDto> allGroupExpense = entryService.getAllGroupExpense();
+
+        return new ResponseEntity<>(allGroupExpense, HttpStatus.OK);
+    }
+
+
+
     @GetMapping("/{id}")
     public ResponseEntity<EntryResponseDto> getEntryById(@PathVariable("id") UUID entryID) throws IOException {
         EntryResponseDto entryResponseDto = entryService.getEntryById(entryID);
