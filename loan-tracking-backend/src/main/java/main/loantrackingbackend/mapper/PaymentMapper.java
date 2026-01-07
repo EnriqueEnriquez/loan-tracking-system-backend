@@ -32,7 +32,7 @@ public class PaymentMapper {
             dto.setImageUrls(
                     payment.getImageFiles()
                             .stream()
-                            .map(PaymentProof::getImageUrl)
+                            .map(PaymentProof::getImageName)
                             .collect(Collectors.toList())
             );
         }
