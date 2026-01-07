@@ -42,7 +42,7 @@ public class ImageProofServiceImpl implements ImageProofService {
 
         ImageProof imageProof = new ImageProof();
         imageProof.setImageName(fileName);
-        imageProof.setImageUrl("/uploads/" + fileName);
+        imageProof.setImageUrl("uploads/" + fileName);
         imageProof.setEntry(entry);
 
         return imageProofRepository.save(imageProof);
