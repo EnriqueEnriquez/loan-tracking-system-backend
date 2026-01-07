@@ -61,23 +61,27 @@ public class PersonServiceImpl implements PersonService {
     @Override
     public PersonDto updatePerson(Long personId, PersonDto updatedPerson) {
 
-        if (personRepository.existsByFirstNameAndLastName(updatedPerson.getFirstName(), updatedPerson.getLastName())) {
-            throw new DuplicateResourceException("Person with name " + updatedPerson.getFirstName() + " " + updatedPerson.getLastName() + " already exists");
-        }
-
         Person person = personRepository.findById(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Person does not exist with id: " + personId));
 
-        if (personRepository.existsByContact(updatedPerson.getContact()) && !Objects.equals(person.getContact(), updatedPerson.getContact())) {
-            throw new DuplicateResourceException("Contact " + updatedPerson.getContact() + " already exists");
+        // Only check for name duplicates if the name is being changed
+        if (!Objects.equals(person.getFirstName(), updatedPerson.getFirstName())
+                || !Objects.equals(person.getLastName(), updatedPerson.getLastName())) {
+            if (personRepository.existsByFirstNameAndLastName(updatedPerson.getFirstName(), updatedPerson.getLastName())) {
+                throw new DuplicateResourceException("Person with name " + updatedPerson.getFirstName() + " " + updatedPerson.getLastName() + " already exists");
+            }
+        }
+
+        // Only check for contact duplicates if the contact is being changed
+        if (!Objects.equals(person.getContact(), updatedPerson.getContact())) {
+            if (personRepository.existsByContact(updatedPerson.getContact())) {
+                throw new DuplicateResourceException("Contact " + updatedPerson.getContact() + " already exists");
+            }
         }
 
         person.setFirstName(updatedPerson.getFirstName());
         person.setLastName(updatedPerson.getLastName());
-
-        if (!Objects.equals(person.getContact(), updatedPerson.getContact())) {
-            person.setContact(updatedPerson.getContact());
-        }
+        person.setContact(updatedPerson.getContact());
 
         Person savedPerson = personRepository.save(person);
 
@@ -96,9 +100,9 @@ public class PersonServiceImpl implements PersonService {
         );
 
         if (entryRepository.existsByPersonLender(person)
-            || straightExpenseRepository.existsByPersonBorrower(person)
-            || installmentExpenseRepository.existsByPersonBorrower(person)
-            || paymentAllocationRepository.existsByGroupMemberBorrower(person)) {
+                || straightExpenseRepository.existsByPersonBorrower(person)
+                || installmentExpenseRepository.existsByPersonBorrower(person)
+                || paymentAllocationRepository.existsByGroupMemberBorrower(person)) {
             return "Cannot delete person with id: " + personId + " because they are associated with expense/s. Delete those expense first.";
         }
 
