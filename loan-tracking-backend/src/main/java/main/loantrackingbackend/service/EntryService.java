@@ -1,6 +1,7 @@
 package main.loantrackingbackend.service;
 
 import main.loantrackingbackend.dto.*;
+import main.loantrackingbackend.entity.StraightExpense;
 
 import java.io.IOException;
 import java.util.List;
@@ -11,6 +12,11 @@ public interface EntryService {
 
     // Get all entries (for dashboard)
     Map<String, List<EntryResponseDto>> getAllEntriesGrouped();
+
+    List<EntryResponseDto> getAllStraightExpense();
+    List<EntryResponseDto> getAllInstallmentExpense();
+    List<EntryResponseDto> getAllGroupExpense();
+
 
     // Get specific details regardless of type
     EntryResponseDto getEntryById(UUID entryId);

@@ -5,6 +5,7 @@ import main.loantrackingbackend.dto.*;
 import main.loantrackingbackend.entity.*;
 import main.loantrackingbackend.enums.PaymentFrequency;
 import main.loantrackingbackend.enums.PaymentStatus;
+import main.loantrackingbackend.enums.TransactionType;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.EntryMapper;
 import main.loantrackingbackend.mapper.PaymentAllocationMapper;
@@ -44,6 +45,34 @@ public class EntryServiceImpl implements EntryService {
                         Collectors.mapping(this::convertToDto, Collectors.toList())
                 ));
     }
+
+    @Override
+    public List<EntryResponseDto> getAllStraightExpense() {
+        List<Entry> entries = entryRepository.findAllByTransactionType(TransactionType.STRAIGHT);
+
+        return entries.stream()
+                .map(this::convertToDto)
+                .toList();
+    }
+
+    @Override
+    public List<EntryResponseDto> getAllInstallmentExpense() {
+        List<Entry> entries = entryRepository.findAllByTransactionType(TransactionType.INSTALLMENT);
+
+        return entries.stream()
+                .map(this::convertToDto)
+                .toList();
+    }
+
+    @Override
+    public List<EntryResponseDto> getAllGroupExpense() {
+        List<Entry> entries = entryRepository.findAllByTransactionType(TransactionType.GROUP);
+
+        return entries.stream()
+                .map(this::convertToDto)
+                .toList();
+    }
+
 
     private EntryResponseDto convertToDto(Entry entry) {
 
