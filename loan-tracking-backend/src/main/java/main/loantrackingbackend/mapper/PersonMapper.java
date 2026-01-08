@@ -15,11 +15,12 @@ public class PersonMapper {
     }
 
     public static Person mapToPerson(PersonDto personDto) {
-        return new Person(
-                personDto.getPersonId(),
-                personDto.getFirstName(),
-                personDto.getLastName(),
-                personDto.getContact()
-        );
+        Person person = new Person();
+        person.setPersonId(personDto.getPersonId());
+        person.setFirstName(personDto.getFirstName());
+        person.setLastName(personDto.getLastName());
+        person.setContact(personDto.getContact());
+
+        return person;
     }
 }

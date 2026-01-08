@@ -19,7 +19,11 @@ public class GroupMemberMapper {
 
         GroupMemberId id = groupMember.getId();
         PersonDto personDto = mapToPersonDto(groupMember.getPerson());
-        GroupDto groupDto = mapToGroupDto(groupMember.getGroup());
+
+        Group group = groupMember.getGroup();
+        GroupDto groupDto = new GroupDto();
+        groupDto.setGroupId(group.getGroupId());
+        groupDto.setGroupName(group.getGroupName());
 
         GroupMemberDto groupMemberDto = new GroupMemberDto();
         groupMemberDto.setGroupMemberId(id);

@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @AllArgsConstructor
 @RestController
@@ -37,15 +39,28 @@ public class PersonController {
     }
 
     @PutMapping("{id}")
-    public ResponseEntity<PersonDto> updatePerson(@PathVariable("id") Long personId, @RequestBody PersonDto updatedPerson) {
-        PersonDto personDto = personService.updatePerson(personId, updatedPerson);
+    public ResponseEntity<?> updatePerson(@PathVariable("id") Long personId, @RequestBody PersonDto updatedPerson) {
+       try {
+           PersonDto personDto = personService.updatePerson(personId, updatedPerson);
+           return new ResponseEntity<>(personDto, HttpStatus.OK);
+       } catch (Exception e) {
+           Map<String, String> response = Collections.singletonMap("message", e.getMessage());
 
-        return new ResponseEntity<>(personDto, HttpStatus.OK);
+           return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+       }
     }
 
     @DeleteMapping("{id}")
-    public ResponseEntity<String> deletePerson(@PathVariable("id") Long personId) {
-        personService.deletePerson(personId);
-        return new ResponseEntity<>("Person deleted", HttpStatus.OK);
+    public ResponseEntity<Map<String, String>> deletePerson(@PathVariable("id") Long personId) {
+
+        String resultMessage = personService.deletePerson(personId);
+
+        Map<String, String> response = Collections.singletonMap("message", resultMessage);
+
+        if (resultMessage.startsWith("Cannot")) {
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+        }
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

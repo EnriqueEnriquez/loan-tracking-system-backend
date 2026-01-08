@@ -1,0 +1,443 @@
+package main.loantrackingbackend.service.impl;
+
+import lombok.AllArgsConstructor;
+import main.loantrackingbackend.dto.*;
+import main.loantrackingbackend.entity.*;
+import main.loantrackingbackend.enums.PaymentFrequency;
+import main.loantrackingbackend.enums.PaymentStatus;
+import main.loantrackingbackend.enums.TransactionType;
+import main.loantrackingbackend.exception.ResourceNotFoundException;
+import main.loantrackingbackend.mapper.EntryMapper;
+import main.loantrackingbackend.mapper.PaymentAllocationMapper;
+import main.loantrackingbackend.repository.*;
+import main.loantrackingbackend.service.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@AllArgsConstructor
+public class EntryServiceImpl implements EntryService {
+
+    private EntryRepository entryRepository;
+    private PersonRepository personRepository;
+    private ImageProofService imageProofService;
+    private InstallmentTermService installmentTermService;
+    private PaymentService paymentService;
+    private final GroupRepository groupRepository;
+    private PaymentAllocationService paymentAllocationService;
+    private GroupMemberRepository groupMemberRepository;
+
+    @Override
+    public Map<String, List<EntryResponseDto>> getAllEntriesGrouped() {
+        List<Entry> entries = entryRepository.findAll();
+
+        return entries.stream()
+                .collect(Collectors.groupingBy(
+                        entry -> entry.getTransactionType().toString(),
+                        Collectors.mapping(this::convertToDto, Collectors.toList())
+                ));
+    }
+
+    @Override
+    public List<EntryResponseDto> getAllStraightExpense() {
+        List<Entry> entries = entryRepository.findAllByTransactionType(TransactionType.STRAIGHT);
+
+        return entries.stream()
+                .map(this::convertToDto)
+                .toList();
+    }
+
+    @Override
+    public List<EntryResponseDto> getAllInstallmentExpense() {
+        List<Entry> entries = entryRepository.findAllByTransactionType(TransactionType.INSTALLMENT);
+
+        return entries.stream()
+                .map(this::convertToDto)
+                .toList();
+    }
+
+    @Override
+    public List<EntryResponseDto> getAllGroupExpense() {
+        List<Entry> entries = entryRepository.findAllByTransactionType(TransactionType.GROUP);
+
+        return entries.stream()
+                .map(this::convertToDto)
+                .toList();
+    }
+
+
+    private EntryResponseDto convertToDto(Entry entry) {
+
+        return switch (entry.getTransactionType()) {
+            case STRAIGHT -> EntryMapper.mapToStraightResponseDto((StraightExpense) entry);
+            case INSTALLMENT -> EntryMapper.mapToInstallmentResponseDto((InstallmentExpense) entry);
+            case GROUP -> EntryMapper.mapToGroupExpenseResponseDto((GroupExpense) entry);
+            default -> throw new IllegalStateException("Unexpected transaction type: " + entry.getTransactionType());
+        };
+    }
+
+    @Override
+    public EntryResponseDto getEntryById(UUID entryId) {
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        return switch (entry) {
+            case StraightExpense straightExpense -> EntryMapper.mapToStraightResponseDto(straightExpense);
+            case InstallmentExpense installmentExpense -> EntryMapper.mapToInstallmentResponseDto(installmentExpense);
+            case GroupExpense groupExpense -> EntryMapper.mapToGroupExpenseResponseDto(groupExpense);
+            default -> throw new ResourceNotFoundException("Entry not found");
+        };
+    }
+
+    @Override
+    public EntryResponseDto updateEntryDetails(UUID entryId, EntryUpdateDto updateDto) throws IOException {
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found with id: " + entryId));
+
+        updateCommonFields(entry, updateDto);
+
+        if (entry instanceof StraightExpense straightEntry) {
+
+            handleStraightExpenseUpdate(straightEntry, updateDto);
+            entryRepository.save(straightEntry);
+            return EntryMapper.mapToStraightResponseDto(straightEntry);
+
+        } else if (entry instanceof InstallmentExpense  installmentEntry) {
+
+            handleInstallmentExpenseUpdate(installmentEntry, updateDto);
+            entryRepository.save(installmentEntry);
+            return EntryMapper.mapToInstallmentResponseDto(installmentEntry);
+        } else if (entry instanceof GroupExpense groupExpenseEntry) {
+            GroupExpense groupExpense = handleGroupExpenseUpdate(groupExpenseEntry, updateDto);
+            entryRepository.save(groupExpense);
+            return EntryMapper.mapToGroupExpenseResponseDto(groupExpense);
+        }
+
+        throw new IllegalArgumentException("Unknown Entry Type");
+    }
+
+    private void updateCommonFields(Entry entry, EntryUpdateDto updateDto) throws IOException {
+        if (updateDto.getEntryName() != null) entry.setEntryName(updateDto.getEntryName());
+        if (updateDto.getDescription() != null) entry.setDescription(updateDto.getDescription());
+        if(updateDto.getDateBorrowed() != null) entry.setDateBorrowed(updateDto.getDateBorrowed());
+        if (updateDto.getNotes() != null) entry.setNotes(updateDto.getNotes());
+
+        if (updateDto.getLenderId() != null) {
+            Person lender = personRepository.findById(updateDto.getLenderId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getLenderId()));
+            entry.setPersonLender(lender);
+        }
+
+        if (updateDto.getDeletedImageIds() != null && !updateDto.getDeletedImageIds().isEmpty()) {
+            List<ImageProof> toRemove = new ArrayList<>();
+
+            for (Long id : updateDto.getDeletedImageIds()) {
+                entry.getImageProofFiles().stream()
+                        .filter(img -> img.getId().equals(id))
+                        .findFirst()
+                        .ifPresent(toRemove::add);
+            }
+
+            for (ImageProof img : toRemove) {
+                entry.getImageProofFiles().remove(img);
+                imageProofService.deleteImageFile(img.getId());
+            }
+        }
+
+        List<MultipartFile> newFiles = updateDto.getImageFiles();
+        if (newFiles != null && !newFiles.isEmpty()) {
+
+            List<ImageProof> newProofs = imageProofService.saveImageFilesList(entry, newFiles);
+            entry.getImageProofFiles().addAll(newProofs);
+        }
+    }
+
+    private void handleStraightExpenseUpdate(StraightExpense entry, EntryUpdateDto updateDto) {
+        if (paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+
+            if (updateDto.getAmountBorrowed() != null) {
+                entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+                entry.setAmountRemaining(updateDto.getAmountBorrowed());
+                // amount remaining = amount borrowed when no payments yet
+            }
+
+            if (updateDto.getPersonBorrowerId() != null) {
+                Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
+                entry.setPersonBorrower(personBorrower);
+            }
+        }
+        entry.setReferenceId(getReferenceId(entry));
+    }
+
+    private void handleInstallmentExpenseUpdate(InstallmentExpense entry, EntryUpdateDto updateDto) {
+        if (paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+            if (updateDto.getAmountBorrowed() != null) {
+                entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+                entry.setAmountRemaining(updateDto.getAmountBorrowed());
+            }
+
+            if (updateDto.getPersonBorrowerId() != null) {
+                Person personBorrower = personRepository.findById(updateDto.getPersonBorrowerId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Person not found with id: " + updateDto.getPersonBorrowerId()));
+                entry.setPersonBorrower(personBorrower);
+            }
+
+            if (updateDto.getStartDate() != null) entry.setStartDate(updateDto.getStartDate());
+            if (updateDto.getPaymentTerms() != 0) entry.setPaymentTerms(updateDto.getPaymentTerms());
+            if (updateDto.getPaymentFrequency() != null) entry.setPaymentFrequency(updateDto.getPaymentFrequency());
+            if (updateDto.getPaymentAmountPerTerm() != null) entry.setPaymentAmountPerTerm(updateDto.getPaymentAmountPerTerm());
+
+
+            List<InstallmentTerm> newTermList = installmentTermService.createInstallmentTermsList(entry);
+            entry.getInstallmentTerms().clear();
+            entry.getInstallmentTerms().addAll(newTermList);
+        }
+        entry.setReferenceId(getReferenceId(entry));
+
+    }
+
+    private GroupExpense handleGroupExpenseUpdate(GroupExpense entry, EntryUpdateDto updateDto) throws IOException {
+        if(paymentService.getPaymentsByEntry(entry.getId()).isEmpty()) {
+
+            if (updateDto.getAmountBorrowed() != null) {
+                entry.setAmountBorrowed(updateDto.getAmountBorrowed());
+                entry.setAmountRemaining(updateDto.getAmountBorrowed());
+            }
+
+            if (updateDto.getGroupBorrowerId() != null) {
+                Group groupBorrower = groupRepository.findById(updateDto.getGroupBorrowerId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Group not found with id: " + updateDto.getGroupBorrowerId()));
+                entry.setGroupBorrower(groupBorrower);
+            }
+
+
+            entry.setReferenceId(getReferenceId(entry));
+
+            entry = entryRepository.save(entry);
+
+            paymentAllocationService.deletePaymentAllocationById(entry.getId());
+
+            if (updateDto.getPaymentAllocations() != null) {
+                for (PaymentAllocationCreateDto allocationDto : updateDto.getPaymentAllocations()) {
+
+                    GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(
+                            entry.getGroupBorrower().getGroupId(),
+                            allocationDto.getGroupMemberPersonId()
+                    );
+
+                    PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(allocationDto, entry, member);
+
+                    entry.addPaymentAllocation(allocation);
+                }
+            }
+            entry = entryRepository.save(entry);
+        }
+
+        return entry;
+    }
+
+    @Override
+    public StraightResponseDto createStraightExpense(StraightCreateDto seCreateDto) throws IOException {
+
+        StraightExpense straightExpense = EntryMapper.mapToStraightExpense(seCreateDto);
+
+        Person lender = personRepository.findById(seCreateDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+
+        straightExpense.setPersonLender(lender);
+
+        Person borrower = personRepository.findById(seCreateDto.getBorrowerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
+
+        straightExpense.setPersonBorrower(borrower);
+        straightExpense.setAmountRemaining(straightExpense.getAmountBorrowed());
+
+        StraightExpense savedExpense = entryRepository.save(straightExpense);
+
+        List<ImageProof> imageProofs= imageProofService.saveImageFilesList(savedExpense, seCreateDto.getImageFiles());
+
+        if (!imageProofs.isEmpty()) {
+            savedExpense.getImageProofFiles().addAll(imageProofs);
+        }
+
+        savedExpense.setReferenceId(getReferenceId(savedExpense));
+        savedExpense = entryRepository.save(savedExpense);
+
+        return EntryMapper.mapToStraightResponseDto(savedExpense);
+    }
+
+    @Override
+    public void deleteEntry(UUID entryID) throws IOException {
+        Entry entry = entryRepository.findById(entryID)
+                .orElseThrow(() -> new ResourceNotFoundException("Expense does not exist with id: " + entryID));
+
+        for (var file : entry.getImageProofFiles()) {
+            imageProofService.deleteImageFile(file.getId());
+        }
+
+        entryRepository.delete(entry);
+    }
+
+    @Override
+    public void deleteAllPaidEntries() throws IOException {
+        List<Entry> paidEntries = entryRepository.findAllByStatus(PaymentStatus.PAID);
+        for (Entry entry : paidEntries) {
+            UUID entryID = entry.getId();
+            deleteEntry(entryID);
+        }
+    }
+
+
+    @Override
+    public InstallmentResponseDto createInstallmentExpense(InstallmentCreateDto installmentCreateDto) throws IOException {
+        InstallmentExpense installmentExpense = EntryMapper.mapToInstallmentExpense(installmentCreateDto);
+
+        Person lender = personRepository.findById(installmentCreateDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+
+        installmentExpense.setPersonLender(lender);
+
+        Person borrower = personRepository.findById(installmentCreateDto.getBorrowerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Person not found"));
+
+        installmentExpense.setPersonBorrower(borrower);
+        installmentExpense.setAmountRemaining(installmentExpense.getAmountBorrowed());
+
+        InstallmentExpense savedExpense = entryRepository.save(installmentExpense);
+
+        List<ImageProof> imageProofs = imageProofService.saveImageFilesList(savedExpense, installmentCreateDto.getImageFiles());
+
+        if (!imageProofs.isEmpty()) {
+            savedExpense.getImageProofFiles().addAll(imageProofs);
+        }
+
+        savedExpense.setReferenceId(getReferenceId(savedExpense));
+
+        List<InstallmentTerm> installmentTermsList = installmentTermService.createInstallmentTermsList(savedExpense);
+        savedExpense.getInstallmentTerms().addAll(installmentTermsList);
+
+        savedExpense = entryRepository.save(savedExpense);
+
+        return EntryMapper.mapToInstallmentResponseDto(savedExpense);
+    }
+
+    @Override
+    public GroupExpenseResponseDto createGroupExpense(GroupExpenseCreateDto geCreateDto) throws IOException {
+        GroupExpense groupExpense = EntryMapper.mapToGroupExpense(geCreateDto);
+
+        Person lender = personRepository.findById(geCreateDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+
+        groupExpense.setPersonLender(lender);
+
+        Group borrower = groupRepository.findById(geCreateDto.getBorrowerGroupId())
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+        groupExpense.setGroupBorrower(borrower);
+
+
+        groupExpense.setAmountRemaining(groupExpense.getAmountBorrowed());
+
+        GroupExpense savedExpense = entryRepository.save(groupExpense);
+
+        List<ImageProof> imageProofs = imageProofService.saveImageFilesList(savedExpense, geCreateDto.getImageFiles());
+        if (!imageProofs.isEmpty()) {
+            savedExpense.getImageProofFiles().addAll(imageProofs);
+        }
+
+        savedExpense.setReferenceId(getReferenceId(savedExpense));
+        savedExpense = entryRepository.save(savedExpense);
+
+        return EntryMapper.mapToGroupExpenseResponseDto(savedExpense);
+    }
+
+    public GroupExpenseResponseDto createGroupExpenseWithAllocations(GroupExpenseCreateDto geCreateDto) throws IOException {
+        GroupExpense groupExpense = EntryMapper.mapToGroupExpense(geCreateDto);
+
+        Person lender = personRepository.findById(geCreateDto.getLenderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Lender not found"));
+        groupExpense.setPersonLender(lender);
+
+
+        Group borrower = groupRepository.findById(geCreateDto.getBorrowerGroupId())
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+        groupExpense.setGroupBorrower(borrower);
+
+
+        groupExpense.setAmountRemaining(groupExpense.getAmountBorrowed());
+
+        GroupExpense savedExpense = entryRepository.save(groupExpense);
+
+        List<ImageProof> imageProofs = imageProofService.saveImageFilesList(savedExpense, geCreateDto.getImageFiles());
+        if (!imageProofs.isEmpty()) {
+            savedExpense.getImageProofFiles().addAll(imageProofs);
+        }
+
+        savedExpense.setReferenceId(getReferenceId(savedExpense));
+
+        if (geCreateDto.getPaymentAllocations() != null) {
+            for (PaymentAllocationCreateDto allocationDto : geCreateDto.getPaymentAllocations()) {
+
+                GroupMember member = groupMemberRepository.findByGroup_GroupIdAndPerson_PersonId(
+                        savedExpense.getGroupBorrower().getGroupId(),
+                        allocationDto.getGroupMemberPersonId()
+                );
+
+                PaymentAllocation allocation = PaymentAllocationMapper.mapToPaymentAllocation(allocationDto, savedExpense, member);
+
+                savedExpense.addPaymentAllocation(allocation);
+            }
+        }
+
+        savedExpense = entryRepository.save(savedExpense);
+
+        return EntryMapper.mapToGroupExpenseResponseDto(savedExpense);
+    }
+
+
+
+    public static String getReferenceId(Entry entry) {
+        String lender = entry.getPersonLender().getFirstName() + " " + entry.getPersonLender().getLastName();
+        String borrower = "";
+
+        switch (entry) {
+            case StraightExpense straightExpense -> borrower = straightExpense.getPersonBorrower().getFirstName()
+                    + " " + straightExpense.getPersonBorrower().getLastName();
+            case InstallmentExpense installment -> borrower = installment.getPersonBorrower().getFirstName()
+                    + " " + installment.getPersonBorrower().getLastName();
+            case GroupExpense groupExpense -> borrower = groupExpense.getGroupBorrower().getGroupName();
+            default -> {
+            }
+        }
+        return getInitials(borrower) + "_" + getInitials(lender);
+    }
+
+    /**
+     * Helper method for initials, free to transfer to another class
+     *
+     * @param name derived from First Name & Last Name or Group Name
+     * @return initials
+     */
+    public static String getInitials(String name) {
+        if (name == null || name.isBlank()) return "";
+
+        String[] words = name.trim().split("\\s+");
+        StringBuilder initials = new StringBuilder();
+
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                initials.append(Character.toUpperCase(word.charAt(0)));
+            }
+        }
+
+        return initials.toString();
+    }
+}

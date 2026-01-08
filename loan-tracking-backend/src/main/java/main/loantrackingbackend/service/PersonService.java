@@ -12,5 +12,5 @@ public interface PersonService {
 
     PersonDto updatePerson(Long personId, PersonDto updatedPerson);
 
-    void deletePerson(Long personId);
+    String deletePerson(Long personId);
 }

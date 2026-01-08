@@ -1,10 +1,11 @@
 package main.loantrackingbackend.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -13,4 +14,5 @@ import lombok.Setter;
 public class GroupDto {
     private Long groupId;
     private String groupName;
+    private List<PersonDto> groupMembersList;
 }

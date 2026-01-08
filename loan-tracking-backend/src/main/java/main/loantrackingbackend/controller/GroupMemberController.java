@@ -8,7 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/groups/{groupId}/members")
@@ -17,10 +19,14 @@ public class GroupMemberController {
     private GroupMemberService groupMemberService;
 
     @PostMapping("/{personId}")
-    public ResponseEntity<GroupMemberDto> addMember(@PathVariable Long groupId, @PathVariable Long personId) {
-        GroupMemberDto groupMemberDto = groupMemberService.addMember(groupId, personId);
-
-        return new ResponseEntity<>(groupMemberDto, HttpStatus.CREATED);
+    public ResponseEntity<?> addMember(@PathVariable Long groupId, @PathVariable Long personId) {
+        try {
+            GroupMemberDto groupMemberDto = groupMemberService.addMember(groupId, personId);
+            return new ResponseEntity<>(groupMemberDto, HttpStatus.CREATED);
+        } catch (Exception e) {
+            Map<String, String> response= Collections.singletonMap("message", e.getMessage());
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping
@@ -31,9 +37,15 @@ public class GroupMemberController {
     }
 
     @DeleteMapping("/{personId}")
-    public ResponseEntity<String> deleteGroupMember(@PathVariable Long groupId, @PathVariable Long personId) {
-        groupMemberService.removeMember(groupId, personId);
-        return ResponseEntity.ok("Member removed from group");
+    public ResponseEntity<Map<String, String>> deleteGroupMember(@PathVariable Long groupId, @PathVariable Long personId) {
+        String resultMessage = groupMemberService.removeMember(groupId, personId);
+        Map<String, String> response = Collections.singletonMap("message", resultMessage);
+
+        if (resultMessage.startsWith("Cannot")) {
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+        }
+
+        return ResponseEntity.ok(response);
     }
 
 }

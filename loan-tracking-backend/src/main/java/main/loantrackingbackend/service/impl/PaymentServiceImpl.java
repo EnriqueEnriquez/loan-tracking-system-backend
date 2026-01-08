@@ -1,0 +1,191 @@
+package main.loantrackingbackend.service.impl;
+
+import lombok.AllArgsConstructor;
+import main.loantrackingbackend.dto.PaymentCreateDto;
+import main.loantrackingbackend.dto.PaymentResponseDto;
+import main.loantrackingbackend.entity.*;
+import main.loantrackingbackend.enums.PaymentStatus;
+import main.loantrackingbackend.exception.ResourceNotFoundException;
+import main.loantrackingbackend.mapper.PaymentMapper;
+import main.loantrackingbackend.repository.EntryRepository;
+import main.loantrackingbackend.repository.PaymentRepository;
+import main.loantrackingbackend.repository.PersonRepository;
+import main.loantrackingbackend.service.PaymentProofService;
+import main.loantrackingbackend.service.PaymentService;
+import main.loantrackingbackend.util.TestDateManager;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@AllArgsConstructor
+public class PaymentServiceImpl implements PaymentService {
+
+    private final PaymentRepository paymentRepository;
+    private final PersonRepository personRepository;
+    private final PaymentProofService paymentProofService;
+    private final EntryRepository entryRepository;
+
+    @Override
+    public PaymentResponseDto createPayment(PaymentCreateDto dto) throws IOException {
+        Person payee = personRepository.findById(dto.getPersonId())
+                .orElseThrow(() -> new ResourceNotFoundException("Payee not found"));
+
+        Payment payment = PaymentMapper.mapToPayment(dto);
+        payment.setPayee(payee);
+
+        // default will be today's date however, user can set payment date for tracking purposes
+        payment.setPaymentDate(dto.getPaymentDate() == null ? TestDateManager.today() : dto.getPaymentDate());
+
+        Entry entry = entryRepository.findById(dto.getEntryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        if (entry.getStatus() == PaymentStatus.PAID) {
+            throw new IllegalStateException("This entry is already fully paid. No more payments allowed.");
+        }
+
+        payment.setEntry(entry);
+
+        payment = paymentRepository.save(payment);
+
+        if (dto.getImageFiles() != null && !dto.getImageFiles().isEmpty()) {
+            for (var file : dto.getImageFiles()) {
+                PaymentProof proof = paymentProofService.savePaymentProof(payment, file);
+                payment.getImageFiles().add(proof);
+            }
+        }
+
+        payment = paymentRepository.save(payment);
+
+        if (entry instanceof InstallmentExpense expense) {
+            InstallmentTerm term = expense.getInstallmentTerms().stream()
+                    .filter(t -> t.getTermId().equals(dto.getTermId()))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException("Installment term not found"));
+            payment.setInstallmentTerm(term);
+        }
+
+        updatePaymentStatus(entry);
+
+        return PaymentMapper.mapToPaymentResponseDto(payment);
+    }
+
+    public void updatePaymentStatus(Entry entry) {
+        BigDecimal totalPaid = BigDecimal.ZERO;
+
+        for (Payment payment : entry.getPayments()) {
+            if (payment.getPaymentAmount() != null) {
+                totalPaid = totalPaid.add(payment.getPaymentAmount());
+            }
+        }
+
+        BigDecimal amountBorrowed =
+                entry.getAmountBorrowed() != null ? entry.getAmountBorrowed() : BigDecimal.ZERO;
+
+        BigDecimal amountRemaining = amountBorrowed.subtract(totalPaid).max(BigDecimal.ZERO);
+        entry.setAmountRemaining(amountRemaining);
+
+        if (totalPaid.compareTo(BigDecimal.ZERO) == 0) {
+            entry.setStatus(PaymentStatus.UNPAID);
+        } else if (totalPaid.compareTo(amountBorrowed) < 0) {
+            entry.setStatus(PaymentStatus.PARTIALLY_PAID);
+        } else {
+            entry.setStatus(PaymentStatus.PAID);
+            if (entry.getDateFullyPaid() == null) {
+                entry.setDateFullyPaid(entry.getPayments().getLast().getPaymentDate());
+            }
+        }
+
+        entryRepository.save(entry);
+    }
+
+    @Override
+    public PaymentResponseDto getPaymentById(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        return PaymentMapper.mapToPaymentResponseDto(payment);
+    }
+
+    @Override
+    public List<PaymentResponseDto> getPaymentsByPayee(Long personId) {
+
+        Person payee = personRepository.findById(personId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payee not found"));
+
+        List<Payment> payments = paymentRepository.findByPayee(payee);
+
+        return payments.stream()
+                .map(PaymentMapper::mapToPaymentResponseDto)
+                .toList();
+    }
+
+    @Override
+    public List<PaymentResponseDto> getPaymentsForAllocation(UUID entryId, Long memberPersonId) {
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        Person payee = personRepository.findById(memberPersonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payee not found"));
+
+        List<Payment> payments = paymentRepository.findByEntryAndPayee(payee, entry);
+        return payments.stream()
+                .map(PaymentMapper::mapToPaymentResponseDto)
+                .toList();
+    }
+    
+    @Override
+    public List<PaymentResponseDto> getPaymentsByEntry(UUID entryId) {
+
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        List<Payment> payments = paymentRepository.findByEntry(entry);
+
+        return payments.stream()
+                .map(PaymentMapper::mapToPaymentResponseDto)
+                .toList();
+    }
+
+    @Override
+    public List<PaymentResponseDto> getAllPayments() {
+
+        return paymentRepository.findAll()
+                .stream()
+                .map(PaymentMapper::mapToPaymentResponseDto)
+                .toList();
+    }
+
+    @Override
+    public void deleteAllPayments() {
+        paymentRepository.deleteAll();
+
+        List<Entry> allEntries = entryRepository.findAll();
+        for (Entry entry : allEntries) {
+            updatePaymentStatus(entry);
+        }
+    }
+
+    @Override
+    public void deletePaymentsByPayee(Long payeeId) {
+        paymentRepository.deleteByPayeePersonId(payeeId);
+
+        List<Entry> entries = entryRepository.findAllByPaymentsPayeePersonId(payeeId);
+        for (Entry entry : entries) {
+            updatePaymentStatus(entry);
+        }
+    }
+
+    @Override
+    public void deletePaymentsByEntry(UUID entryId) {
+        paymentRepository.deleteByEntryId(entryId);
+
+        Entry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Entry not found"));
+
+        updatePaymentStatus(entry);
+    }
+}

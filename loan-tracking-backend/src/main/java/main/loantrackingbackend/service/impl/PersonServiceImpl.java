@@ -3,23 +3,40 @@ package main.loantrackingbackend.service.impl;
 import lombok.AllArgsConstructor;
 import main.loantrackingbackend.dto.PersonDto;
 import main.loantrackingbackend.entity.Person;
+import main.loantrackingbackend.enums.PaymentStatus;
+import main.loantrackingbackend.exception.DuplicateResourceException;
 import main.loantrackingbackend.exception.ResourceNotFoundException;
 import main.loantrackingbackend.mapper.PersonMapper;
-import main.loantrackingbackend.repository.PersonRepository;
+import main.loantrackingbackend.repository.*;
 import main.loantrackingbackend.service.PersonService;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class PersonServiceImpl implements PersonService {
 
+    private final PaymentAllocationRepository paymentAllocationRepository;
+    private StraightExpenseRepository straightExpenseRepository;
+    private InstallmentExpenseRepository installmentExpenseRepository;
+    private EntryRepository entryRepository;
     private PersonRepository personRepository;
 
     @Override
     public PersonDto createPerson(PersonDto personDto) {
+
+        if (personRepository.existsByFirstNameAndLastName(personDto.getFirstName(), personDto.getLastName())) {
+            throw new DuplicateResourceException("Person with name " + personDto.getFirstName() + " " + personDto.getLastName() + " already exists");
+        }
+
+        if (personRepository.existsByContact(personDto.getContact())) {
+            throw new DuplicateResourceException("Contact " + personDto.getContact() + " already exists");
+        }
+
 
         Person person = PersonMapper.mapToPerson(personDto);
         Person savedPerson = personRepository.save(person);
@@ -47,6 +64,21 @@ public class PersonServiceImpl implements PersonService {
         Person person = personRepository.findById(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Person does not exist with id: " + personId));
 
+        // Only check for name duplicates if the name is being changed
+        if (!Objects.equals(person.getFirstName(), updatedPerson.getFirstName())
+                || !Objects.equals(person.getLastName(), updatedPerson.getLastName())) {
+            if (personRepository.existsByFirstNameAndLastName(updatedPerson.getFirstName(), updatedPerson.getLastName())) {
+                throw new DuplicateResourceException("Person with name " + updatedPerson.getFirstName() + " " + updatedPerson.getLastName() + " already exists");
+            }
+        }
+
+        // Only check for contact duplicates if the contact is being changed
+        if (!Objects.equals(person.getContact(), updatedPerson.getContact())) {
+            if (personRepository.existsByContact(updatedPerson.getContact())) {
+                throw new DuplicateResourceException("Contact " + updatedPerson.getContact() + " already exists");
+            }
+        }
+
         person.setFirstName(updatedPerson.getFirstName());
         person.setLastName(updatedPerson.getLastName());
         person.setContact(updatedPerson.getContact());
@@ -57,10 +89,25 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public void deletePerson(Long personId) {
+    public String deletePerson(Long personId) {
+
         Person person = personRepository.findById(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Person does not exist with id: " + personId));
 
+        List<PaymentStatus> activeStatuses = Arrays.asList(
+                PaymentStatus.UNPAID,
+                PaymentStatus.PARTIALLY_PAID
+        );
+
+        if (entryRepository.existsByPersonLender(person)
+                || straightExpenseRepository.existsByPersonBorrower(person)
+                || installmentExpenseRepository.existsByPersonBorrower(person)
+                || paymentAllocationRepository.existsByGroupMemberBorrower(person)) {
+            return "Cannot delete person with id: " + personId + " because they are associated with expense/s. Delete those expense first.";
+        }
+
         personRepository.delete(person);
+
+        return "Person with id: " + personId + " was successfully deleted";
     }
 }
